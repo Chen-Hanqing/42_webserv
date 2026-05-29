@@ -1,3 +1,19 @@
+## Three Main Layers
+1. Config Layer
+    - config
+    - parser
+2. Network Layer
+    - Listening sockets
+    - Event Loop
+    - Connection management
+    - Buffer management
+    - Non-blocking I/O
+3. HTTP Layer
+    - Http Request
+    - Http Response
+    - CGI
+    - Routing
+
 ### HTTP (hyper text transfer protocol)
 - how it works
     1. a web client (browser) opens an internet connection to a server and request content
