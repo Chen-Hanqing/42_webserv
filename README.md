@@ -1,3 +1,9 @@
+# Web Server
+A web server is a **virtual host** that hosts many websites, each website, because of various website types(static, dynamic, PHP, etc), needs a server for it.
+
+- What does a runtime server do?
+It listen sockets. config the server, 
+
 ## Three Main Layers
 1. Config Layer
     - config
@@ -32,9 +38,11 @@ There are several kinds of web serveer architecture:
 
 ## Network programming
 ### Sockets
+ **socket** is the fd (file descriptor) equivalent for the internet
 
 - `listen()` tells the kernel that this socket is on the server side, not the client side
 - `socket()` create a socket descriptor
 - `connect()` client establishes a connection with the server
-- `accept()` the server wait for the connection request from clients
-- `bind()` server establish a connection with client
+- `accept()` the server wait for the connection request from clients, it creates new **client socket**
+- `bind()` server establish a connection with client `bind(sockfd, port 8000)`
+- _A server comprises one listening socket and many client sockets_
