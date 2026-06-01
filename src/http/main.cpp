@@ -1,3 +1,5 @@
+#include "httpRequest.hpp"
+
 int main()
 {
     std::string raw =
@@ -5,8 +7,9 @@ int main()
         "Host: localhost\r\n"
         "\r\n";
 
-    HttpRequest req = parse(raw);
+    HttpRequest req = parseRequest(raw);
     HttpResponse res = handle(req);
 
     std::cout << res.toString();
 }
+

@@ -5,6 +5,7 @@
 # include <string>
 # include <map>
 # include <vector>
+# include <sstream>
 
 class httpRequest
 {
@@ -17,6 +18,7 @@ class httpRequest
     public:
         bool parseRequest(const std::string &request);
         bool parseRequestLine(const std::string &requestLine);
+        bool parseHeaders(const std::string &headers);
 };
 
 #endif
