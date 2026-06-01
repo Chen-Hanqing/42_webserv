@@ -1,41 +1,36 @@
 #ifndef CONFIG_PARSER_HPP
 # define CONFIG_PARSER_HPP
 
-#include "config.hpp"
+# include "config.hpp"
 
-#include <string>
-#include <vector>
-#include <fstream>
-#include <sstream>
-#include <iostream>
+# include <string>
+# include <vector>
 
-class   ConfigParser{
+class ConfigParser {
     private:
-        std::string content;
-        std::vector<TOKEN>  tokens;
-        size_t  currentTokenIndex;
-        size_t  currentLine;
-        size_t  currentColumn;
+        std::string _lastError;
 
-        bool    tokenize(const std::string& configContent);
-        void    skipWhitespace(const std::string& content, size_t& pos);
-        Token   getNextToken();
-        bool    isWordChar(char c);
-        bool    isDigit(char c);
-        std::string readWord();
-        std::string readNumber();
-        std::string readString();
-        void    skipComment();
+        static std::string trim(const std::string& value);
+        static std::vector<std::string> splitWords(const std::string& value);
+        static bool isUnsignedNumber(const std::string& value);
 
-        bool    parseConfig(Config& config);
-        bool    parseServer(ServerConfig& server);
-        bool    parseLocation(LocationConfig& server);
-        bool    parseServerDirective(ServerConfig& server);
-        bool    parseLocationDirective(LocationConfig& location);
+        bool parseConfigText(const std::string& content, Config& config);
+        bool parseServerBlock(const std::string& block, ServerConfig& server);
+        bool parseLocationBlock(const std::string& path, const std::string& block, LocationConfig& location);
+        bool parseServerDirectory(const std::string& directory, ServerConfig& server);
+        bool parseLocationDirectory(const std::string& directory, LocationConfig& location);
+        bool parseSizeValue(const std::string& value, size_t& result);
+        bool parsePort(const std::string& value, int& port);
+        bool parseIndexList(const std::vector<std::string>& words, std::vector<std::string>& target);
+        void setError(const std::string& message);
 
-        Token   currenToken();
-        Token   peekToken(size_t offset = 1);
-        void    consumeToken();
-        bool    expectToken(TokenType expectedType);
-}
+    public:
+        ConfigParser();
+        ~ConfigParser();
+
+        bool parseFile(const std::string& filename, Config& config);
+        bool parseString(const std::string& configContent, Config& config);
+        std::string getLastError() const;
+};
+
 #endif

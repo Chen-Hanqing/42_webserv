@@ -1,57 +1,72 @@
 #include "web_server.hpp"
 #include "runtime_server.hpp"
 #include "../config/configparser.hpp"
-#include <iostream>
 
-WebServer::WebServer() : listensocket_binded(false), running(false) {}
+#include <arpa/inet.h>
+#include <cerrno>
+#include <cstring>
+#include <fcntl.h>
+#include <iostream>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+WebServer::WebServer() : _listensocketBound(false), _running(false), _maxFd(-1) {}
 
 WebServer::~WebServer() {
     stop();
     cleanup();
 }
 
-bool    WebServer::listensocket_bind(const std::string& configFile){
-    std::cout << "Initializing WebServer with config file: " << configFile << std::endl;
-    ConfigParser    parser;
-    if (!parser.parseFile(configFile, _config)){
+const Config& WebServer::getConfig() const {
+    return _config;
+}
+
+size_t WebServer::getServerCount() const {
+    return _servers.size();
+}
+
+std::string WebServer::getLastError() const {
+    return "Check console output for detailed error messages";
+}
+
+bool WebServer::listensocket_bind(const std::string& configFile) {
+    ConfigParser parser;
+    if (!parser.parseFile(configFile, _config)) {
         std::cerr << "Failed to parse config file: " << parser.getLastError() << std::endl;
         return false;
     }
     return listensocket_bindFromConfig(_config);
 }
 
-bool    WebServer::validateConfig(){
-    if (_config.empty()){
+bool WebServer::validateConfig() {
+    if (_config.empty()) {
         std::cerr << "No server configurations found" << std::endl;
         return false;
     }
-    for (size_t i = 0; i < _config.getServerCount(); i++){
+    for (size_t i = 0; i < _config.getServerCount(); ++i) {
         const ServerConfig& server = _config.getServer(i);
-        if (server.listen.empty()){
+        if (server.listen.empty()) {
             std::cerr << "Server " << i << " has no listen ports" << std::endl;
             return false;
         }
-        for (size_t j = 0; j < server.listen.size(); ++j){
-            int port  = server.listen[j];
-            if (port < 1 || port > 65535){
+        for (size_t j = 0; j < server.listen.size(); ++j) {
+            int port = server.listen[j];
+            if (port < 1 || port > 65535) {
                 std::cerr << "Invalid port number: " << port << std::endl;
                 return false;
             }
-            if (port < 1024){
-                std::cout << "Warning: Using privileged port " << port << " (requires root privileges)" << std::endl;
-            }
         }
-        if (!server.root.empty())
-            std::cout << "Server " << i << " root directory: " << server.root << std::endl;
     }
     return true;
 }
 
-bool    WebServer::createRuntimeServer(){
-    for (size_t i = 0; i < _config.getServerCount(); i++){
+bool WebServer::createRuntimeServer() {
+    for (size_t i = 0; i < _config.getServerCount(); ++i) {
         const ServerConfig& serverConfig = _config.getServer(i);
         RuntimeServer* server = new RuntimeServer(serverConfig);
-        if (!server->listensocket_bind()){
+        if (!server->listensocket_bind()) {
             delete server;
             return false;
         }
@@ -60,230 +75,358 @@ bool    WebServer::createRuntimeServer(){
     return true;
 }
 
-bool    WebServer::setupPortMapping(){
-    for (size_t i = 0; i < _servers.size(); ++i){
+bool WebServer::setupPortMapping() {
+    for (size_t i = 0; i < _servers.size(); ++i) {
         RuntimeServer* server = _servers[i];
         const std::vector<int>& listenPorts = server->getConfig().listen;
-        for (size_t j = 0; j < listenPorts.size(); ++j){
-            int port = listenPorts[j];
-            _port2servers[port].push_back(server);
-        }
-    }
-    for (std::map<int, std::vector<RuntimeServer*> >::const_iterator it = _port2servers.begin();
-            it != _port2servers.end(); ++it){
-        int port = it->first;
-        const std::vector<RuntimeServer*>& serverList = it->second;
-        if (serverList.size() > 1){
-            std::cout << "Port " << port << "is shared by " << serverList.size() << " servers (virtual hosting)" << std::endl;
-            bool    hasDefault = false;
-            for (size_t i = 0; i < serverList.size(); ++i){
-                RuntimeServer* server = serverList[i];
-                if (server->getConfig().serverName.empty()){
-                    hasDefault = true;
-                    break;
-                }
-            }
-            if (!hasDefault)
-                std::cout << "Warning: No default server for port " << port << std::endl;
-        }
+        for (size_t j = 0; j < listenPorts.size(); ++j)
+            _port2servers[listenPorts[j]].push_back(server);
     }
     return true;
 }
 
-
-bool    WebServer::listensocket_bindFromConfig(const Config& cfg){
+bool WebServer::listensocket_bindFromConfig(const Config& cfg) {
     _config = cfg;
-    if (!WebServer::validateConfig()){
-        std::cerr << "Configuration validation failed" << std::endl;
+    if (!validateConfig())
         return false;
-    }
-    if (!createRuntimeServer()){
-        std::cerr << "Failed to create runtime server" << std::endl;
+    if (!createRuntimeServer()) {
         cleanup();
         return false;
     }
-    if (!setupPortMapping()){
-        std::cerr << "Failed to set up port mapping" << std::endl;
+    if (!setupPortMapping()) {
         cleanup();
         return false;
     }
-    listensocket_binded = true;
+    _listensocketBound = true;
     return true;
 }
 
-bool    WebServer::start(){
-    if (!listensocket_binded){
-        std::cerr << "Server not listensocket_binded" << std::endl;
+bool WebServer::start() {
+    if (!_listensocketBound)
         return false;
-    }
-    if (running){
-        std::cout << "Server os already running" << std::endl;
+    if (_running)
         return true;
-    }
-    for (size_t i = 0; i < _servers.size(); ++i){
-        RuntimeServer* server = _servers[i];
-        if (!server->startListening()){
-            std::cerr << "Failed to start listening on server" << std::endl;
+    for (size_t i = 0; i < _servers.size(); ++i) {
+        if (!_servers[i]->startListening())
             return false;
-        }
     }
+    _running = true;
+    updateMaxFd();
+    return true;
 }
 
-void    WebServer::stop(){
-    if (!running) return;
-    std::cout << "Stopping Webserver..." << std::endl;
-    for (size_t i = 0; i < _servers.size(); ++i){
-        RuntimeServer* server = _servers[i];
-        server->cleanup();
-    }
-    running = false;
-    std::cout << "Webserver stopped." << std::endl;
+void WebServer::stop() {
+    if (!_running)
+        return;
+    _running = false;
+    for (size_t i = 0; i < _servers.size(); ++i)
+        _servers[i]->cleanup();
 }
 
-
-
-void    WebServer::cleanup(){
-    for (std::map<int, ClientConnection*>::iterator it = _clientConnections.begin();
-    it != _clientConnections.end(); ++it){
-        close(it->first);
+void WebServer::cleanup() {
+    for (std::map<int, ClientConnection*>::iterator it = _clientConnections.begin(); it != _clientConnections.end(); ++it) {
+        if (it->first != -1)
+            close(it->first);
         delete it->second;
     }
     _clientConnections.clear();
-    for (size_t i = 0; i < _servers.size(); ++i){
-        RuntimeServer* server = _servers[i];
-        delete server;
-    }
+
+    for (size_t i = 0; i < _servers.size(); ++i)
+        delete _servers[i];
     _servers.clear();
+
     _port2servers.clear();
+    _maxFd = -1;
+    _listensocketBound = false;
 }
 
-
-
-RuntimeServer* WebServer::findServerByHost(const std::string& hostHeader, int port){
+RuntimeServer* WebServer::findServerByHost(const std::string& hostHeader, int port) {
     std::map<int, std::vector<RuntimeServer*> >::iterator it = _port2servers.find(port);
     if (it == _port2servers.end())
         return NULL;
+
     const std::vector<RuntimeServer*>& serverList = it->second;
-    for (size_t i = 0; i < serverList.size(); ++i){
-        RuntimeServer* server = serverList[i];
-        if (server->matchesServerName(hostHeader))
-            return server;
+    for (size_t i = 0; i < serverList.size(); ++i) {
+        if (serverList[i]->matchesServerName(hostHeader))
+            return serverList[i];
     }
     return serverList.empty() ? NULL : serverList[0];
 }
 
-int WebServer::getPortFromClientSocket(int clientFd){
-    struct sockaddr_in  addr;
-    socklen_t   addrlen = sizeof(addr);
-    if (getsockname(clientFd, (struct sockaddr*)&addr, &addrlen) == 0)
+int WebServer::getPortFromClientSocket(int clientFd) {
+    sockaddr_in addr;
+    socklen_t addrLen = sizeof(addr);
+    if (getsockname(clientFd, reinterpret_cast<sockaddr*>(&addr), &addrLen) == 0)
         return ntohs(addr.sin_port);
     return -1;
 }
 
-const Config&   WebServer::getConfig() const {
-    return _config;
-}
-
-size_t  WebServer::getServerCount() const{
-    return _servers.size();
-}
-
-std::string WebServer::getLastError() const {
-    return "Check console output for detailed error messages";
-}
-
-void    WebServer::handleNewConnection(int serverFd){
-    while (true) {
-        struct sockaddr_in  clientAddr;
-        socklen_t   clientLen = sizeof(clientAddr);
-        int clientFd = accept(serverFd, (struct sockaddr*)&clientAddr, &clientLen);
-        if (clientFd == -1){
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-                break;
-            std::cerr << "Failed to accept connection: " << strerror(errno) << std::endl;
-            break;
+void WebServer::updateMaxFd() {
+    _maxFd = -1;
+    for (size_t i = 0; i < _servers.size(); ++i) {
+        const std::vector<int>& socketFds = _servers[i]->getSocketFds();
+        for (size_t j = 0; j < socketFds.size(); ++j) {
+            if (socketFds[j] > _maxFd)
+                _maxFd = socketFds[j];
         }
-        int flags = fcntl(clientFd, F_GETFL, 0);
-        if (flags == -1 || fcntl(clientFd, F_SETFL, flags | O_NONBLOCK) == -1){
-            std::cerr << "Failed to set non-blocking mode" << std::endl;
-            close(clientFd);
-            continue;
-        }
-        ClientConnection*   conn = new ClientConnection(clientFd);
-        conn->_last_active = time(NULL);
-        _clientConnections[cliendFd] = conn;
-        if (clientFd > maxFd)
-            maxFd = cliendFd;
-        std::cout << "New connection accepted: fd=" << clientFd << std::endl;
+    }
+    for (std::map<int, ClientConnection*>::iterator it = _clientConnections.begin(); it != _clientConnections.end(); ++it) {
+        if (it->first > _maxFd)
+            _maxFd = it->first;
     }
 }
 
-bool    WebServer::parseHttpRequest(ClientConnection* conn){
+void WebServer::handleNewConnection(int serverFd) {
+    while (true) {
+        sockaddr_in clientAddr;
+        socklen_t clientLen = sizeof(clientAddr);
+        int clientFd = accept(serverFd, reinterpret_cast<sockaddr*>(&clientAddr), &clientLen);
+        if (clientFd == -1) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+                break;
+            std::cerr << "accept() failed: " << strerror(errno) << std::endl;
+            break;
+        }
 
+        int flags = fcntl(clientFd, F_GETFL, 0);
+        if (flags == -1 || fcntl(clientFd, F_SETFL, flags | O_NONBLOCK) == -1) {
+            close(clientFd);
+            continue;
+        }
+
+        ClientConnection* conn = new ClientConnection(clientFd);
+        _clientConnections[clientFd] = conn;
+        if (clientFd > _maxFd)
+            _maxFd = clientFd;
+    }
 }
 
+bool WebServer::parseHttpRequest(ClientConnection* conn) {
+    if (!conn || !conn->_http_request)
+        return false;
+    return conn->_http_request->parseRequest(conn->request_buffer);
+}
 
-void    WebServer::buildHttpResponse(ClientConnection* conn){
-if (val_status == VALID_REQUEST){
+void WebServer::buildHttpResponse(ClientConnection* conn) {
+    if (!conn || !conn->_http_request || !conn->_http_response)
+        return;
+
+    if (!conn->_runtime_server) {
+        conn->response_buffer = conn->_http_response->buildErrorResponse(404, "Not Found", *conn->_http_request);
+        return;
+    }
+
     std::string method = conn->_http_request->getMethodStr();
-    std::string uri = ;
+    std::string uri = conn->_http_request->getURI();
+    if (uri.empty())
+        uri = "/";
 
-    if (method == "GET")
-        handleGetResponse(conn, uri, cgiHandler);
-    else if (method == "POST")
-        handlePostResponse(conn, uri, cgiHandler);
-    else if (method == "DELETE")
-        handleDeleteResponse(conn, uri, cgiHandler);
+    LocationConfig* location = conn->_matched_location;
+    if (!location)
+        location = conn->_runtime_server->findMatchingLocation(uri);
+
+    if (method == "POST") {
+        conn->response_buffer = conn->_http_response->buildHttpResponse(201, "Created", *conn->_http_request);
+        return;
+    }
+
+    if (method == "DELETE") {
+        std::string root = conn->_runtime_server->getConfig().root;
+        if (location) {
+            if (!location->alias.empty())
+                root = location->alias;
+            else if (!location->root.empty())
+                root = location->root;
+        }
+        if (root.empty())
+            root = ".";
+
+        std::string filePath = root;
+        if (!filePath.empty() && filePath[filePath.size() - 1] != '/')
+            filePath += "/";
+        if (uri.size() > 1 && uri[0] == '/')
+            filePath += uri.substr(1);
+        else
+            filePath += uri;
+
+        if (std::remove(filePath.c_str()) == 0)
+            conn->response_buffer = conn->_http_response->buildHttpResponse(200, "OK", *conn->_http_request);
+        else
+            conn->response_buffer = conn->_http_response->buildErrorResponse(404, "Not Found", *conn->_http_request);
+        return;
+    }
+
+    std::string root = conn->_runtime_server->getConfig().root;
+    if (location) {
+        if (!location->alias.empty())
+            root = location->alias;
+        else if (!location->root.empty())
+            root = location->root;
+    }
+    if (root.empty())
+        root = ".";
+
+    std::string filePath = root;
+    if (!filePath.empty() && filePath[filePath.size() - 1] != '/')
+        filePath += "/";
+    if (uri.size() > 1 && uri[0] == '/')
+        filePath += uri.substr(1);
     else
-        conn->response_buffer = conn->_http_request->buildErrorResponse();
+        filePath += uri;
+
+    conn->response_buffer = conn->_http_response->buildFileResponse(filePath, *conn->_http_request);
 }
-}
 
-
-
-void    WebServer::resetConnection(ClientConnection* conn){
+void WebServer::resetConnection(ClientConnection* conn) {
+    if (!conn)
+        return;
     conn->request_buffer.clear();
     conn->response_buffer.clear();
     conn->_bytes_sent = 0;
     conn->_request_complete = false;
     conn->_response_ready = false;
-    if (conn->_http_request){
-        delete conn->_http_request;
-        conn->_http_request = NULL;
-    }
-    if (conn->_http_response){
-        delete conn->_http_response;
-        conn->_http_response = NULL;
-    }
+    delete conn->_http_request;
+    delete conn->_http_response;
+    conn->_http_request = NULL;
+    conn->_http_response = NULL;
     conn->_runtime_server = NULL;
     conn->_matched_location = NULL;
     conn->_last_active = time(NULL);
-    std::cout << "Connection reset for reuse: fd=" << conn->fd << std::endl;
 }
 
-void    WebServer::closeClientConnection(int clientFd){
-    std::map<int, ClientConnection*>::iterator it = clientConnections.find(clientFd);
-    if (it != clientConnections.end()){
+void WebServer::closeClientConnection(int clientFd) {
+    std::map<int, ClientConnection*>::iterator it = _clientConnections.find(clientFd);
+    if (it != _clientConnections.end()) {
         delete it->second;
-        clientConnections.erase(it);
+        _clientConnections.erase(it);
     }
-    close(clientFd);
+    if (clientFd != -1)
+        close(clientFd);
     updateMaxFd();
-    std::cout << "Connection closed: fd=" << clientFd << std::endl;
 }
 
-void    WebServer::updateMaxFd(){
-    maxFd = -1;
-    for (size_t i = 0; i < _servers.size(); i++){
-        const std::vector<int>& socketFds = _servers[i]->getSocketFds();
-        for (size_t j = 0; j < socketFds.size(); j++){
-            if (socketFds[j] > maxFd)
-                maxFd = socketFds[j];
-        }
+void WebServer::handleClientRequest(int clientFd) {
+    std::map<int, ClientConnection*>::iterator it = _clientConnections.find(clientFd);
+    if (it == _clientConnections.end())
+        return;
+
+    ClientConnection* conn = it->second;
+    if (!conn)
+        return;
+
+    char buffer[4096];
+    ssize_t bytesRead = recv(clientFd, buffer, sizeof(buffer), 0);
+    if (bytesRead <= 0) {
+        closeClientConnection(clientFd);
+        return;
     }
-    for (std::map<int, ClientConnection*>::iterator it = _clientConnections.begin();
-    it != _clientConnections.end(); ++it){
-        if (it->first > maxFd)
-            maxFd = it->first;
+
+    conn->request_buffer.append(buffer, static_cast<size_t>(bytesRead));
+    conn->_last_active = time(NULL);
+
+    if (!conn->_http_request)
+        conn->_http_request = new HttpRequest();
+    if (!conn->_http_response)
+        conn->_http_response = new HttpResponse();
+
+    if (!conn->_http_request->isRequestComplete(conn->request_buffer))
+        return;
+
+    conn->_request_complete = true;
+    if (!parseHttpRequest(conn)) {
+        conn->response_buffer = conn->_http_response->buildErrorResponse(400, "Bad Request", *conn->_http_request);
+        conn->_response_ready = true;
+        return;
+    }
+
+    std::string host = conn->_http_request->getHost();
+    int port = getPortFromClientSocket(clientFd);
+    conn->_runtime_server = findServerByHost(host, port);
+    if (conn->_runtime_server)
+        conn->_matched_location = conn->_runtime_server->findMatchingLocation(conn->_http_request->getURI());
+
+    buildHttpResponse(conn);
+    conn->_response_ready = true;
+}
+
+void WebServer::handleClientResponse(int clientFd) {
+    std::map<int, ClientConnection*>::iterator it = _clientConnections.find(clientFd);
+    if (it == _clientConnections.end())
+        return;
+
+    ClientConnection* conn = it->second;
+    if (!conn || !conn->_response_ready)
+        return;
+
+    if (conn->_bytes_sent >= conn->response_buffer.size()) {
+        closeClientConnection(clientFd);
+        return;
+    }
+
+    ssize_t bytesSent = send(clientFd, conn->response_buffer.data() + conn->_bytes_sent,
+        conn->response_buffer.size() - conn->_bytes_sent, 0);
+    if (bytesSent <= 0) {
+        closeClientConnection(clientFd);
+        return;
+    }
+
+    conn->_bytes_sent += static_cast<size_t>(bytesSent);
+    if (conn->_bytes_sent >= conn->response_buffer.size())
+        closeClientConnection(clientFd);
+}
+
+void WebServer::run() {
+    if (!_running)
+        return;
+
+    while (_running) {
+        FD_ZERO(&_readFds);
+        FD_ZERO(&_writeFds);
+        updateMaxFd();
+
+        for (size_t i = 0; i < _servers.size(); ++i) {
+            const std::vector<int>& socketFds = _servers[i]->getSocketFds();
+            for (size_t j = 0; j < socketFds.size(); ++j)
+                FD_SET(socketFds[j], &_readFds);
+        }
+
+        for (std::map<int, ClientConnection*>::iterator it = _clientConnections.begin(); it != _clientConnections.end(); ++it) {
+            FD_SET(it->first, &_readFds);
+            if (it->second && it->second->_response_ready)
+                FD_SET(it->first, &_writeFds);
+        }
+
+        timeval timeout;
+        timeout.tv_sec = 1;
+        timeout.tv_usec = 0;
+
+        int activity = select(_maxFd + 1, &_readFds, &_writeFds, NULL, &timeout);
+        if (activity < 0) {
+            if (errno == EINTR)
+                continue;
+            std::cerr << "select() failed: " << strerror(errno) << std::endl;
+            break;
+        }
+
+        for (size_t i = 0; i < _servers.size(); ++i) {
+            const std::vector<int>& socketFds = _servers[i]->getSocketFds();
+            for (size_t j = 0; j < socketFds.size(); ++j) {
+                int serverFd = socketFds[j];
+                if (FD_ISSET(serverFd, &_readFds))
+                    handleNewConnection(serverFd);
+            }
+        }
+
+        std::vector<int> clientFds;
+        for (std::map<int, ClientConnection*>::iterator it = _clientConnections.begin(); it != _clientConnections.end(); ++it)
+            clientFds.push_back(it->first);
+
+        for (size_t i = 0; i < clientFds.size(); ++i) {
+            int clientFd = clientFds[i];
+            if (_clientConnections.find(clientFd) != _clientConnections.end() && FD_ISSET(clientFd, &_readFds))
+                handleClientRequest(clientFd);
+            if (_clientConnections.find(clientFd) != _clientConnections.end() && FD_ISSET(clientFd, &_writeFds))
+                handleClientResponse(clientFd);
+        }
     }
 }
