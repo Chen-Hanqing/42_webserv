@@ -4,6 +4,7 @@
 # include <iostream>
 # include <string>
 # include <map>
+# include <vector>
 
 class httpRequest
 {
@@ -14,12 +15,8 @@ class httpRequest
         std::map<std::string, std::string> headers;
         std::string body;
     public:
-        void setMethod(const std::string &m);
-        void setPath(onst std::string &p);
-        void setVersion(onst std::string &v);
-        void setHeader(const std::string &key, const std::string &value);
-}
-
-httpRequest parseRequest(const std::string &request_buffer);
+        bool parseRequest(const std::string &request);
+        bool parseRequestLine(const std::string &requestLine);
+};
 
 #endif
