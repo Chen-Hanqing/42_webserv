@@ -7,9 +7,11 @@ int main()
         "Host: localhost\r\n"
         "\r\n";
 
-    HttpRequest req = parseRequest(raw);
-    HttpResponse res = handle(req);
+    httpRequest req;
+    req.parseRequest(raw);
 
-    std::cout << res.toString();
+    // HttpResponse res = handle(req);
+
+    // std::cout << res.toString();
 }
 

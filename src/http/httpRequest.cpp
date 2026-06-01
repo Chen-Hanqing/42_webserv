@@ -1,4 +1,4 @@
-#include"httpRequest.hpp"
+#include "httpRequest.hpp"
 
 static std::string trim(const std::string &s)
 {
@@ -27,7 +27,7 @@ bool httpRequest::parseHeaders(const std::string &headersStr)
             return false;
         key = trim(line.substr(0, pos));
         value = trim(line.substr(pos + 1));
-        headers[key] = value;
+        _headers[key] = value;
     }
     return true;
 }
@@ -59,9 +59,9 @@ bool httpRequest::parseRequestLine(const std::string &requestLine) // need to ch
     parts = splitBySpace(requestLine);
     if (parts.size() != 3)
         return false;
-    method = parts[0];
-    path = parts[1];
-    version = parts[2];
+    _method = parts[0];
+    _path = parts[1];
+    _version = parts[2];
     return true;
 }
 
@@ -85,6 +85,22 @@ bool httpRequest::parseRequest(const std::string &request)
     std::string headersStr = getHeadersStr(request);
     if (!parseHeaders(headersStr))
         return false;
+
+
+// print out test
+//     std::cout << "method: " << _method 
+//             << "\npath: " << _path 
+//             << "\nversion: " << _version
+//             << "\nheaders: ";
+// for (std::map<std::string, std::string>::iterator it = _headers.begin();
+//      it != _headers.end();
+//      ++it)
+// {
+//     std::cout << it->first << ": " << it->second << std::endl;
+// }
+
+
     // parseBody(buffer, req); // 第一周先空着
+
     return true;
 }

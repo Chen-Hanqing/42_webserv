@@ -10,11 +10,11 @@
 class httpRequest
 {
     private:
-        std::string method;
-        std::string path;
-        std::string version;
-        std::map<std::string, std::string> headers;
-        std::string body;
+        std::string _method;
+        std::string _path;
+        std::string _version;
+        std::map<std::string, std::string> _headers;
+        std::string _body;
     public:
         bool parseRequest(const std::string &request);
         bool parseRequestLine(const std::string &requestLine);
@@ -22,3 +22,13 @@ class httpRequest
 };
 
 #endif
+
+// validate request
+    // if (method : get post delete) 
+        // 200 OK
+    // else
+        // 405 Method Not Allowed
+    // http version is 1.1
+        // if not, 505 HTTP Version Not Supported
+    // if host
+        // not, 400 Bad Request
