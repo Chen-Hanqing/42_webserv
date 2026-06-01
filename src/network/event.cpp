@@ -1,11 +1,13 @@
+#include "web_server.hpp"
+
 void    WebServer::run(){
     if (!running){
 
     }
     while (running){
         //add sockets
-        for (size_t i = 0; i < servers.size(); ++i){
-            const std::vector<int>& socketFds = servers[i].getSocketFds();
+        for (size_t i = 0; i < _servers.size(); ++i){
+            const std::vector<int>& socketFds = _servers[i].getSocketFds();
             for (size_t j = 0; j < socketFds.size(); ++j)
                 FD_SET(socketFds[j], &readFds);
         }
@@ -21,8 +23,8 @@ void    WebServer::run(){
         // select()
         int activity = select(, &readFds, &writeFds, NULL, &timeout);
         // new connection
-        for (size_t i = 0; i < servers.size(); ++i){
-            std::vector<int>&   socketFds = servers[i]->getSocketFds();
+        for (size_t i = 0; i < _servers.size(); ++i){
+            std::vector<int>&   socketFds = _servers[i]->getSocketFds();
             for (size_t j = 0; j < socketFds.size(); j++){
                 int newsockFd = socketFds[j];
                 if (FD_ISSET(newsockFd, &readFds))
@@ -37,7 +39,7 @@ void    WebServer::run(){
             ++next_it; // didnt write the iteration in the loop for safety
             if (FD_ISSET(clientFd, &readFds))
                 handleClientRequest(clientFd);
-            it = clientConnections.find()
+            it = clientConnections.find();
 
         }
     }
@@ -78,7 +80,7 @@ static void handleGetResponse(){
 
 static void handlePostResponse(){
     if (!isMethodAllowed("POST", conn->_matched_location)){
-        conn->response_buffer =__http_response->buildErrorResponse(405, "Method Not Allowed");
+        conn->response_buffer =_http_response->buildErrorResponse(405, "Method Not Allowed");
         return;
     }
     std::string file_path = buildFilePath(conn, uri);

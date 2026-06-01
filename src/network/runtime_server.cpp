@@ -1,10 +1,15 @@
+
+#include "runtime_server.hpp"
+
+
+
 RuntimeServer::RuntimeServer(const ServerConfig& serverConfig) : config(serverConfig) {}
 
 RuntimeServer::~RuntimeServer(){
     cleanup();
 }
 
-bool    RuntimeServer::initialize(){
+bool    RuntimeServer::listensocket_bind(){
     //create socket for each listening port
     for (size_t i = 0; i < config.listen.size(); i++){
         int port = config.listen[i];
@@ -79,7 +84,7 @@ bool    RuntimeServer::isListeningOnPort(int port) const{
     return port2socket.find(port) != port2socket.end();
 }
 
-bool    RuntimeServer::getSocketForPort(int port) const{
+int    RuntimeServer::getSocketForPort(int port) const{
     std::map<int, int>::const_iterator  it = port2socket.find(port);
     return (it != port2socket.end()) ? it->second : -1;
 }

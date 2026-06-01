@@ -1,8 +1,34 @@
-# Web Server
+﻿# Web Server
 A web server is a **virtual host** that hosts many websites, each website, because of various website types(static, dynamic, PHP, etc), needs a server for it.
 
 - What does a runtime server do?
-It listen sockets. config the server, 
+It listen on sockets, config the server, location matching, server name matching.
+
+#### Port
+IP tells which machine, and **port** determines which program/service.
+#### Socket 
+Socket is the internet fd (file descriptor) for one TCP connection between client and server.
+#### Location
+A location is a rule of Routing.
+```
+/images
+/upload
+
+```
+
+### Mapping from port to servers
+One port may correspond to multiple servers (virtual hosts). `port2servers()` function lists out all possible servers, and `findServerByHost()` pins down which server (host)
+
+```
+server {
+    listen 8080;
+    server_name cat.com;
+}
+server {
+    listen 8080;
+    server_name dog.com;
+}
+```
 
 ## Three Main Layers
 1. Config Layer
@@ -37,12 +63,19 @@ There are several kinds of web serveer architecture:
 - hybrid and modern: Twitter (Event-driven + thread pool), Docker, Whatsapp, discord, Dropbox
 
 ## Network programming
-### Sockets
- **socket** is the fd (file descriptor) equivalent for the internet
 
-- `listen()` tells the kernel that this socket is on the server side, not the client side
 - `socket()` create a socket descriptor
-- `connect()` client establishes a connection with the server
-- `accept()` the server wait for the connection request from clients, it creates new **client socket**
+### for the server
+- `listen()` tells the kernel that this socket is on the server side, not the client side
 - `bind()` server establish a connection with client `bind(sockfd, port 8000)`
-- _A server comprises one listening socket and many client sockets_
+- `accept()` the server wait for the connection request from clients, it creates new **client socket**
+### for the client (browser)
+- `connect()` client establishes a connection with the server
+
+- $$1  server = 1  listening socket +  many client sockets$$
+
+- workflow:
+
+server: `socket()` --> `bind()` --> `listen()` 
+--> client: `socket()` --> `connect()` 
+--> server: `accept()`

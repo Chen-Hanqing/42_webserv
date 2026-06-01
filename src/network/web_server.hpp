@@ -1,14 +1,17 @@
 #ifndef WEB_SERVER_HPP
 #define WEB_SERVER_HPP
 
+#include "../config/config.hpp"
+#include "client_connec.hpp"
+
 class   WebServer{
     private:
-        Config config;
-        std::vector<ServerInstance> servers;
-        std::map<int, std::vector<ServerInstance*> >portToserver;
-        bool initialized;
+        Config _config;
+        std::vector<RuntimeServer*> _servers;
+        std::map<int, std::vector<RuntimeServer*> >_port2servers;
+        bool listensocket_binded;
         bool running;
-        std::map<int, ClientConnection*> clientConnections;
+        std::map<int, ClientConnection*> _clientConnections;
         fd_set readFds, writeFds;
         int maxFd;
         void    handleNewConnection(int serverFd);
@@ -21,7 +24,7 @@ class   WebServer{
         void    updateMaxFd();
 
         bool    validateConfig();
-        bool    createServerInstances();
+        bool    createRuntimeServer();
         bool    setupPortMapping();
         void    printServerInfo();
 
@@ -30,14 +33,14 @@ class   WebServer{
     public:
         WebServer();
         ~WebServer();
-        bool    initialize(const std::string& configFile);
-        bool    initializeFromConfig(const Config& cfg);
+        bool    listensocket_bind(const std::string& configFile);
+        bool    listensocket_bindFromConfig(const Config& cfg);
         bool    start();
         void    stop();
         bool    isRunning() const { return running; }
         const Config& getConfig() const;
         size_t  getServerCount() const;
-        ServerInstance* findServerByHost(const std::string& hostHeader, int port);
+        RuntimeServer* findServerByHost(const std::string& hostHeader, int port);
         int getPortFromClientSocket(int clientFd);
         void    run();
         std::string getLastError() const;

@@ -1,3 +1,10 @@
+#ifndef SERVERCONFIG_HPP
+# define SERVERCONFIG_HPP
+#include <string>
+#include <vector>
+#include <map>
+
+#include "./LocationConfig.hpp"
 
 struct ServerConfig{
     std::vector<int> listen;
@@ -23,3 +30,5 @@ struct ServerConfig{
         locations.push_back(location);
     }
 };
+
+#endif

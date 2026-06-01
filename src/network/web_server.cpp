@@ -1,102 +1,32 @@
-WebServer::WebServer() : initialized(false), running(false) {}
+#include "web_server.hpp"
+#include "runtime_server.hpp"
+#include "../config/configparser.hpp"
+#include <iostream>
+
+WebServer::WebServer() : listensocket_binded(false), running(false) {}
 
 WebServer::~WebServer() {
     stop();
     cleanup();
 }
 
-bool    WebServer::initialize(const std::string& configFile){
+bool    WebServer::listensocket_bind(const std::string& configFile){
     std::cout << "Initializing WebServer with config file: " << configFile << std::endl;
     ConfigParser    parser;
-    if (!parser.parseFile(configFile, config)){
+    if (!parser.parseFile(configFile, _config)){
         std::cerr << "Failed to parse config file: " << parser.getLastError() << std::endl;
         return false;
     }
-    return initializeFromConfig(config);
+    return listensocket_bindFromConfig(_config);
 }
 
-bool    WebServer::initializeFromConfig(const Config& cfg){
-    config = cfg;
-    if (!validate_config()){
-        std::cerr << "Configuration validation failed" << std::endl;
-        return false;
-    }
-    if (!createRuntimeServer()){
-        std::cerr << "Failed to create server instances" << std::endl;
-        cleanup();
-        return false;
-    }
-    if (!setupPortMapping()){
-        std::cerr << "Failed to set up port mapping" << std::endl;
-        cleanup();
-        return false;
-    }
-    initialized = true;
-    return true;
-}
-
-bool    WebServer::validate_config(){
-    if (config.empty()){
-        std::cerr << "No server configuration found" << std::endl;
-        return false;
-    }
-    for (size_t i = 0; i < config.getServerCount(); i++){
-        const   ServerConfig& server = config.getServer(i);
-        if (server.listen.empty()){
-            std::cerr << "Server " << i << " has no listen ports" << std::endl;
-            return false;
-        }
-        for (size_t j = 0; j < server.listen.size(); j++){
-            int port = server.listen[j];
-            if (port < 1 || port > 65535){
-                std::cerr << "Invalid port number: " << port << std::endl;
-                return false;
-            }
-            if (port < 1024)
-                std::cout << "Warning: Using privileged port " << port << " (requires root privileges)" << std::endl;
-        }
-        if (!server.root.empty())
-            std::cout << "Server " << i << " root directory: " << server.root << std::endl;
-    }
-    return true;
-}
-
-bool    WebServer::start(){
-    if (!initialized){
-        std::cerr << "Server not initialized" << std::endl;
-        return false;
-    }
-    if (running){
-        std::cout << "Server os already running" << std::endl;
-        return true;
-    }
-    for (size_t i = 0; i < servers.size(); ++i){
-        RuntimeServer* server = servers[i];
-        if (!server->startListening()){
-            std::cerr << "Failed to start listening on server" << std::endl;
-            return false;
-        }
-    }
-}
-
-void    WebServer::stop(){
-    if (!running) return;
-    std::cout << "Stopping Webserver..." << std::endl;
-    for (size_t i = 0; i < servers.size(); ++i){
-        RuntimeServer* server = servers[i];
-        server->cleanup();
-    }
-    running = false;
-    std::cout << "Webserver stopped." << std::endl;
-}
-
-bool    WebServer::validate_config(){
-    if (config.empty()){
+bool    WebServer::validateConfig(){
+    if (_config.empty()){
         std::cerr << "No server configurations found" << std::endl;
         return false;
     }
-    for (size_t i = 0; i < config.getServerCount(); i++){
-        const ServerConfig& server = config.getServer(i);
+    for (size_t i = 0; i < _config.getServerCount(); i++){
+        const ServerConfig& server = _config.getServer(i);
         if (server.listen.empty()){
             std::cerr << "Server " << i << " has no listen ports" << std::endl;
             return false;
@@ -117,45 +47,30 @@ bool    WebServer::validate_config(){
     return true;
 }
 
-void    WebServer::cleanup(){
-    for (std::map<int, ClientConnection*>::iterator it = clientConnections.begin();
-    it != clientConnections.end(); ++it){
-        close(it->first);
-        delete it->second;
-    }
-    clientConnections.clear();
-    for (size_t i = 0; i < servers.size(); ++i){
-        RuntimeServer* server = servers[i];
-        delete server;
-    }
-    servers.clear();
-    port2servers.clear();
-}
-
 bool    WebServer::createRuntimeServer(){
-    for (size_t i = 0; i < config.getServerCount(); i++){
-        const ServerConfig& serverConfig = config.getServer(i);
+    for (size_t i = 0; i < _config.getServerCount(); i++){
+        const ServerConfig& serverConfig = _config.getServer(i);
         RuntimeServer* server = new RuntimeServer(serverConfig);
-        if (!server->initialize()){
+        if (!server->listensocket_bind()){
             delete server;
             return false;
         }
-        servers.push_back(server);
+        _servers.push_back(server);
     }
     return true;
 }
 
 bool    WebServer::setupPortMapping(){
-    for (size_t i = 0; i < servers.size(), ++i){
-        RuntimeServer* server = servers[i];
+    for (size_t i = 0; i < _servers.size(); ++i){
+        RuntimeServer* server = _servers[i];
         const std::vector<int>& listenPorts = server->getConfig().listen;
         for (size_t j = 0; j < listenPorts.size(); ++j){
             int port = listenPorts[j];
-            port2servers[port].push_back(server);
+            _port2servers[port].push_back(server);
         }
     }
-    for (std::map<int, std::vector<RuntimeServer*>::const_iterator it = port2servers.begin();
-     it != port2servers.end(); ++it){
+    for (std::map<int, std::vector<RuntimeServer*> >::const_iterator it = _port2servers.begin();
+            it != _port2servers.end(); ++it){
         int port = it->first;
         const std::vector<RuntimeServer*>& serverList = it->second;
         if (serverList.size() > 1){
@@ -175,9 +90,78 @@ bool    WebServer::setupPortMapping(){
     return true;
 }
 
+
+bool    WebServer::listensocket_bindFromConfig(const Config& cfg){
+    _config = cfg;
+    if (!WebServer::validateConfig()){
+        std::cerr << "Configuration validation failed" << std::endl;
+        return false;
+    }
+    if (!createRuntimeServer()){
+        std::cerr << "Failed to create runtime server" << std::endl;
+        cleanup();
+        return false;
+    }
+    if (!setupPortMapping()){
+        std::cerr << "Failed to set up port mapping" << std::endl;
+        cleanup();
+        return false;
+    }
+    listensocket_binded = true;
+    return true;
+}
+
+bool    WebServer::start(){
+    if (!listensocket_binded){
+        std::cerr << "Server not listensocket_binded" << std::endl;
+        return false;
+    }
+    if (running){
+        std::cout << "Server os already running" << std::endl;
+        return true;
+    }
+    for (size_t i = 0; i < _servers.size(); ++i){
+        RuntimeServer* server = _servers[i];
+        if (!server->startListening()){
+            std::cerr << "Failed to start listening on server" << std::endl;
+            return false;
+        }
+    }
+}
+
+void    WebServer::stop(){
+    if (!running) return;
+    std::cout << "Stopping Webserver..." << std::endl;
+    for (size_t i = 0; i < _servers.size(); ++i){
+        RuntimeServer* server = _servers[i];
+        server->cleanup();
+    }
+    running = false;
+    std::cout << "Webserver stopped." << std::endl;
+}
+
+
+
+void    WebServer::cleanup(){
+    for (std::map<int, ClientConnection*>::iterator it = _clientConnections.begin();
+    it != _clientConnections.end(); ++it){
+        close(it->first);
+        delete it->second;
+    }
+    _clientConnections.clear();
+    for (size_t i = 0; i < _servers.size(); ++i){
+        RuntimeServer* server = _servers[i];
+        delete server;
+    }
+    _servers.clear();
+    _port2servers.clear();
+}
+
+
+
 RuntimeServer* WebServer::findServerByHost(const std::string& hostHeader, int port){
-    std::map<int, std::vector<RuntimeServer*> >::iterator it = port2servers.find(port);
-    if (it == port2servers.end())
+    std::map<int, std::vector<RuntimeServer*> >::iterator it = _port2servers.find(port);
+    if (it == _port2servers.end())
         return NULL;
     const std::vector<RuntimeServer*>& serverList = it->second;
     for (size_t i = 0; i < serverList.size(); ++i){
@@ -197,11 +181,11 @@ int WebServer::getPortFromClientSocket(int clientFd){
 }
 
 const Config&   WebServer::getConfig() const {
-    return config;
+    return _config;
 }
 
 size_t  WebServer::getServerCount() const{
-    return servers.size();
+    return _servers.size();
 }
 
 std::string WebServer::getLastError() const {
@@ -227,7 +211,7 @@ void    WebServer::handleNewConnection(int serverFd){
         }
         ClientConnection*   conn = new ClientConnection(clientFd);
         conn->_last_active = time(NULL);
-        clientConnections[cliendFd] = conn;
+        _clientConnections[cliendFd] = conn;
         if (clientFd > maxFd)
             maxFd = cliendFd;
         std::cout << "New connection accepted: fd=" << clientFd << std::endl;
@@ -257,7 +241,7 @@ if (val_status == VALID_REQUEST){
 
 
 
-void    WebServer::resetConnection(){
+void    WebServer::resetConnection(ClientConnection* conn){
     conn->request_buffer.clear();
     conn->response_buffer.clear();
     conn->_bytes_sent = 0;
@@ -290,15 +274,15 @@ void    WebServer::closeClientConnection(int clientFd){
 
 void    WebServer::updateMaxFd(){
     maxFd = -1;
-    for (size_t i = 0; i < servers.size(); i++){
-        const std::vector<int>& socketFds = servers[i]->getSocketFds();
+    for (size_t i = 0; i < _servers.size(); i++){
+        const std::vector<int>& socketFds = _servers[i]->getSocketFds();
         for (size_t j = 0; j < socketFds.size(); j++){
             if (socketFds[j] > maxFd)
                 maxFd = socketFds[j];
         }
     }
-    for (std::map<int, ClientConnection*>::iterator it = clientConnections.begin();
-    it != clientConnections.end(); ++it){
+    for (std::map<int, ClientConnection*>::iterator it = _clientConnections.begin();
+    it != _clientConnections.end(); ++it){
         if (it->first > maxFd)
             maxFd = it->first;
     }

@@ -1,3 +1,5 @@
+#include "web_server.hpp"
+
 void    WebServer::handleClientRequest(int clientFd){
     std::map<int, ClientConnection*>::iterator it = clientConnections.find(clientFd);
     if (it == clientConnections.end()) return;
