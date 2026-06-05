@@ -11,10 +11,10 @@ struct LocationConfig{
     std::vector<std::string>    index;
     std::vector<std::string>    allowMethods;
     bool    autoindex;
-    size_t  clientMax;
-    LocationConfig() : autoindex(false), clientMax(static_cast<size_t>(-1)) {}
+    size_t  clientMaxBody;
+    LocationConfig() : autoindex(false), clientMaxBody(static_cast<size_t>(-1)) {}
     LocationConfig(const std::string& locationPath) : 
-        path(locationPath), autoindex(false), clientMax(static_cast<size_t>(-1)) {}    
+        path(locationPath), autoindex(false), clientMaxBody(static_cast<size_t>(-1)) {}    
 };
 
 #endif

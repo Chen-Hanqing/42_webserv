@@ -85,12 +85,12 @@ bool ConfigParser::parseIndexList(const std::vector<std::string>& words, std::ve
     return true;
 }
 
-bool ConfigParser::parseServerDirectory(const std::string& directory, ServerConfig& server) {
-    std::string line = trim(directory);
+bool ConfigParser::parseServerDirective(const std::string& directive, ServerConfig& server) {
+    std::string line = trim(directive);
     if (line.empty())
         return true;
     if (line[line.size() - 1] != ';') {
-        setError("Missing ';' at end of server directory: " + line);
+        setError("Missing ';' at end of server directive: " + line);
         return false;
     }
     line = trim(line.substr(0, line.size() - 1));
@@ -100,7 +100,7 @@ bool ConfigParser::parseServerDirectory(const std::string& directory, ServerConf
 
     if (words[0] == "listen") {
         if (words.size() < 2) {
-            setError("listen directory requires a port");
+            setError("listen directive requires a port");
             return false;
         }
         int port = 0;
@@ -113,7 +113,7 @@ bool ConfigParser::parseServerDirectory(const std::string& directory, ServerConf
     }
     if (words[0] == "server_name") {
         if (words.size() < 2) {
-            setError("server_name directory requires at least one name");
+            setError("server_name directive requires at least one name");
             return false;
         }
         for (size_t i = 1; i < words.size(); ++i)
@@ -122,7 +122,7 @@ bool ConfigParser::parseServerDirectory(const std::string& directory, ServerConf
     }
     if (words[0] == "root") {
         if (words.size() != 2) {
-            setError("root directory requires exactly one path");
+            setError("root directive requires exactly one path");
             return false;
         }
         server.root = words[1];
@@ -130,7 +130,7 @@ bool ConfigParser::parseServerDirectory(const std::string& directory, ServerConf
     }
     if (words[0] == "index") {
         if (!parseIndexList(words, server.indice)) {
-            setError("index directory requires at least one file");
+            setError("index directive requires at least one file");
             return false;
         }
         return true;
@@ -145,7 +145,7 @@ bool ConfigParser::parseServerDirectory(const std::string& directory, ServerConf
             setError("Invalid client_max_body_size value: " + words[1]);
             return false;
         }
-        server.clientMax = sizeValue;
+        server.clientMaxBody = sizeValue;
         return true;
     }
     if (words[0] == "error_page") {
@@ -168,16 +168,16 @@ bool ConfigParser::parseServerDirectory(const std::string& directory, ServerConf
         return true;
     }
 
-    setError("Unknown server directory: " + words[0]);
+    setError("Unknown server directive: " + words[0]);
     return false;
 }
 
-bool ConfigParser::parseLocationDirectory(const std::string& directory, LocationConfig& location) {
-    std::string line = trim(directory);
+bool ConfigParser::parseLocationDirective(const std::string& directive, LocationConfig& location) {
+    std::string line = trim(directive);
     if (line.empty())
         return true;
     if (line[line.size() - 1] != ';') {
-        setError("Missing ';' at end of location directory: " + line);
+        setError("Missing ';' at end of location directive: " + line);
         return false;
     }
     line = trim(line.substr(0, line.size() - 1));
@@ -187,7 +187,7 @@ bool ConfigParser::parseLocationDirectory(const std::string& directory, Location
 
     if (words[0] == "root") {
         if (words.size() != 2) {
-            setError("root directory requires exactly one path");
+            setError("root directive requires exactly one path");
             return false;
         }
         location.root = words[1];
@@ -195,7 +195,7 @@ bool ConfigParser::parseLocationDirectory(const std::string& directory, Location
     }
     if (words[0] == "alias") {
         if (words.size() != 2) {
-            setError("alias directory requires exactly one path");
+            setError("alias directive requires exactly one path");
             return false;
         }
         location.alias = words[1];
@@ -236,11 +236,11 @@ bool ConfigParser::parseLocationDirectory(const std::string& directory, Location
             setError("Invalid client_max_body_size value: " + words[1]);
             return false;
         }
-        location.clientMax = sizeValue;
+        location.clientMaxBody = sizeValue;
         return true;
     }
 
-    setError("Unknown location directory: " + words[0]);
+    setError("Unknown location directive: " + words[0]);
     return false;
 }
 
@@ -257,7 +257,7 @@ bool ConfigParser::parseLocationBlock(const std::string& path, const std::string
             setError("Missing ';' inside location block: " + path);
             return false;
         }
-        if (!parseLocationDirectory(block.substr(pos, end - pos + 1), location))
+        if (!parseLocationDirective(block.substr(pos, end - pos + 1), location))
             return false;
         pos = end + 1;
     }
@@ -281,7 +281,7 @@ bool ConfigParser::parseServerBlock(const std::string& block, ServerConfig& serv
                 ++pathEnd;
             std::string locationPath = trim(block.substr(pos, pathEnd - pos));
             if (locationPath.empty()) {
-                setError("location directory requires a path");
+                setError("location directive requires a path");
                 return false;
             }
             std::string::size_type braceOpen = block.find('{', pathEnd);
@@ -318,7 +318,7 @@ bool ConfigParser::parseServerBlock(const std::string& block, ServerConfig& serv
             setError("Missing ';' inside server block");
             return false;
         }
-        if (!parseServerDirectory(block.substr(pos, end - pos + 1), server))
+        if (!parseServerDirective(block.substr(pos, end - pos + 1), server))
             return false;
         pos = end + 1;
     }

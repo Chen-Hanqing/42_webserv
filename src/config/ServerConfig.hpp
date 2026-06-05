@@ -9,13 +9,13 @@
 struct ServerConfig{
     std::vector<int> listen;
     std::vector<std::string> serverName;
-    size_t  clientMax;
+    size_t  clientMaxBody;
     std::string root;
     std::vector<std::string>    indice;
     std::map<int, std::string>  errorPages;
     std::vector<LocationConfig> locations;
 
-    ServerConfig() : clientMax(1048576) {}
+    ServerConfig() : clientMaxBody(1048576) {}
 
     void    addListenPort(int port){
         listen.push_back(port);

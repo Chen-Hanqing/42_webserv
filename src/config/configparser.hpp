@@ -17,8 +17,8 @@ class ConfigParser {
         bool parseConfigText(const std::string& content, Config& config);
         bool parseServerBlock(const std::string& block, ServerConfig& server);
         bool parseLocationBlock(const std::string& path, const std::string& block, LocationConfig& location);
-        bool parseServerDirectory(const std::string& directory, ServerConfig& server);
-        bool parseLocationDirectory(const std::string& directory, LocationConfig& location);
+        bool parseServerDirective(const std::string& directive, ServerConfig& server);
+        bool parseLocationDirective(const std::string& directive, LocationConfig& location);
         bool parseSizeValue(const std::string& value, size_t& result);
         bool parsePort(const std::string& value, int& port);
         bool parseIndexList(const std::vector<std::string>& words, std::vector<std::string>& target);
