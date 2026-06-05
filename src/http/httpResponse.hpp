@@ -1,7 +1,7 @@
 #ifndef HTTPRESPONSE
 # define HTTPRESPONSE
 
-# include "httpRequest.hpp"
+# include "requestParse.hpp"
 
 // struct of the response:
 // HTTP/1.1 200 OK
@@ -10,16 +10,33 @@
 
 // Hello World
 
+// 1. GET + 静态页面        ⭐⭐⭐⭐⭐
+// 2. 404 页面    
+
 class httpResponse
 {
     private:
-        std::string _version;
-		std::string _status_code;
+		int _status_code;
 		std::string _status_message;
+        std::string _contentType;
         std::map<std::string, std::string> _headers;
         std::string _body;
+
     public:
-        bool buildResponse(const std::string &request);
+        httpResponse();
+        explicit httpResponse(int code);
+        
+        void setStatusCode(int code);
+        void setHeaders(const requestParse& request);
+        void setBody(std::string body);
+        void setContentType(std::string contentType);
+
+        void addHeadersValue(const std::string& key, const std::string& value);
+        std::string getStatusMessage() const;
+
+        std::string buildStatusLine();
+        std::string buildHeaders();
+        std::string buildResponse(const requestParse& request);
 };
 
 #endif

@@ -1,4 +1,4 @@
-#include "httpRequest.hpp"
+#include "requestParse.hpp"
 
 static std::string trim(const std::string &s)
 {
@@ -14,7 +14,8 @@ static std::string trim(const std::string &s)
     return s.substr(start, end - start);
 }
 
-bool httpRequest::parseHeaders(const std::string &headersStr)
+// get headers line by line, seperate by ":"
+bool requestParse::parseHeaders(const std::string &headersStr)
 {
     std::string line;
     std::istringstream iss(headersStr);
@@ -52,7 +53,7 @@ static std::vector<std::string> splitBySpace(const std::string &requestLine)
     return results;
 }
 
-bool httpRequest::parseRequestLine(const std::string &requestLine) // need to check line
+bool requestParse::parseRequestLine(const std::string &requestLine) // need to check line
 {
     std::vector<std::string> parts;
 
@@ -60,7 +61,7 @@ bool httpRequest::parseRequestLine(const std::string &requestLine) // need to ch
     if (parts.size() != 3)
         return false;
     _method = parts[0];
-    _path = parts[1];
+    _URI = parts[1];
     _version = parts[2];
     return true;
 }
@@ -73,7 +74,7 @@ static std::string getRequestLine(const std::string& request)
     return (request.substr(0, pos));
 }
 
-bool httpRequest::parseRequest(const std::string &request)
+bool requestParse::parseRequest(const std::string &request)
 {
     if (request.empty())
         return false;
@@ -86,21 +87,63 @@ bool httpRequest::parseRequest(const std::string &request)
     if (!parseHeaders(headersStr))
         return false;
 
-
-// print out test
-//     std::cout << "method: " << _method 
-//             << "\npath: " << _path 
-//             << "\nversion: " << _version
-//             << "\nheaders: ";
-// for (std::map<std::string, std::string>::iterator it = _headers.begin();
-//      it != _headers.end();
-//      ++it)
-// {
-//     std::cout << it->first << ": " << it->second << std::endl;
-// }
-
-
     // parseBody(buffer, req); // 第一周先空着
 
     return true;
+}
+
+// validate request
+    // if (method : get post delete) 
+        // 200 OK
+    // else
+        // 405 Method Not Allowed
+    // http version is 1.1
+        // if not, 505 HTTP Version Not Supported
+    // if host
+        // not, 400 Bad Request
+
+ValidationResult requestParse::validateRequest()
+{
+    if(_method != "GET" && _method != "POST" && _method != "DELETE")
+        return METHOD_NOT_ALLOWED;
+    if (_version != "HTTP/1.1")
+        return HTTP_VERSION_NOT_SUPPORTED;
+    if (_headers.find("Host") == _headers.end() || _headers["Host"].empty())
+        return BAD_REQUEST;
+    return OK;
+}
+
+// --------------------- getter ---------------------
+
+std::string requestParse::getHeader(std::string key) const
+{
+    std::map<std::string, std::string>::const_iterator it = _headers.find(key);
+    if (it != _headers.end())
+        return it->second;
+    return "";
+}
+
+const std::map<std::string, std::string>& requestParse::getHeader() const
+{
+    return _headers;
+}
+
+std::string requestParse::getMethod() const
+{
+    return _method;
+}
+
+std::string requestParse::getURI() const
+{
+    return _URI;
+}
+
+std::string requestParse::getVersion() const
+{
+    return _version;
+}
+
+std::string requestParse::getBody() const
+{
+    return _body;
 }
