@@ -2,14 +2,15 @@
 A web server is a **virtual host** that hosts many websites, because of various website types(static, PHP, autoindex, etc), each website needs a server for it. Thus a web server contains many runtime servers.
 
 - What does a runtime server do?
-It listens on sockets, config the server, location matching, server name matching.
+It reads the configuration and really build the server with runtime services, including creating and binding listen sockets, building connections with clients, and processing HTTP requests and responding.
 
 ### Port
 IP tells which machine, and **port** specifies  which program/service. 
-    >_"Your machine is like a building and the port is the room number"_
+
+>_"Your machine is like a building and the port is the room number"_
 ### Socket 
 Socket is the internet fd (file descriptor) for one TCP connection between client and server.
-    >_"Socket is like the telephone wire for each room or each guest and TCP connection is like the phone call."_
+>_"Socket is like the telephone wire for each room or each guest and TCP connection is like the phone call."_
 ### Location
 If you see a server as a website, then a location is a rule of Routing for that website.
 ```
