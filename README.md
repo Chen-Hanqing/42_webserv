@@ -1,4 +1,8 @@
 ﻿# Web Server
+A WebServer is the actual HTTP server process. It owns the listening sockets, accepts client connections, and routes requests to the appropriate RuntimeServer.
+
+Each RuntimeServer serves a particular websites or a group of websites.
+
 A web server hosts multiple virtual hosts. Each runtime server represents one virtual host and is selected according to the listening port and Host Header of the incoming request.
 
 ```
@@ -24,7 +28,9 @@ WebServer
     
 ```
 - What is a runtime server?
-It is the runtime representation of a server block (virtual host).
+- It is the runtime representation of a server block (virtual host).
+- Why virtual host?
+- Virtual Hosting enables one `IP:Port` serves many websites at the same time.
 ```
 RuntimeServer
 │
