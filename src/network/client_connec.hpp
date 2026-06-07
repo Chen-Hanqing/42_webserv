@@ -13,6 +13,7 @@ class RuntimeServer;
 class ClientConnection {
     public:
         int fd;
+        int _listen_port;
         std::string request_buffer;
         std::string response_buffer;
 

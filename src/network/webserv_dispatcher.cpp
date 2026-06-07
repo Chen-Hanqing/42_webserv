@@ -47,10 +47,9 @@ void WebServer::handleClientRequest(int clientFd) {
     }
 
     std::string host = conn->_http_request->getHost();
-    int port = getPortFromClientSocket(clientFd);
-    conn->_runtime_server = findServerByHost(host, port);
+    conn->_runtime_server = hostRouting(host, conn->_listen_port);
     if (conn->_runtime_server)
-        conn->_matched_location = conn->_runtime_server->findMatchingLocation(conn->_http_request->getURI());
+        conn->_matched_location = conn->_runtime_server->locationRouting(conn->_http_request->getURI());
 
     buildHttpResponse(conn);
     conn->_response_ready = true;

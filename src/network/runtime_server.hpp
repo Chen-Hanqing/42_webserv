@@ -1,7 +1,7 @@
 #ifndef RUNTIME_SERVER_HPP
 # define RUNTIME_SERVER_HPP
 
-# include "../config/ServerConfig.hpp"
+# include "../config/ServerBlockConfig.hpp"
 # include "../config/LocationConfig.hpp"
 
 # include <cerrno>
@@ -15,23 +15,14 @@
 
 class RuntimeServer {
     private:
-        ServerConfig _config;
-        std::vector<int> _socketFds;
-        std::map<int, int> _port2socket;
+        ServerBlockConfig _config;
 
     public:
-        RuntimeServer(const ServerConfig& serverConfig);
+        RuntimeServer(const ServerBlockConfig& blockConfig);
         ~RuntimeServer();
 
-        bool listensocket_bind();
-        bool startListening();
-        void cleanup();
-
-        const ServerConfig& getConfig() const { return _config; }
-        const std::vector<int>& getSocketFds() const { return _socketFds; }
-        bool isListeningOnPort(int port) const;
-        int getSocketForPort(int port) const;
-        LocationConfig* findMatchingLocation(const std::string& path);
+        const ServerBlockConfig& getConfig() const { return _config; }
+        LocationConfig* locationRouting(const std::string& path);
         bool matchesServerName(const std::string& hostHeader) const;
 };
 

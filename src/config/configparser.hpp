@@ -15,9 +15,9 @@ class ConfigParser {
         static bool isUnsignedNumber(const std::string& value);
 
         bool parseConfigText(const std::string& content, Config& config);
-        bool parseServerBlock(const std::string& block, ServerConfig& server);
+        bool parseServerBlock(const std::string& block, ServerBlockConfig& server);
         bool parseLocationBlock(const std::string& path, const std::string& block, LocationConfig& location);
-        bool parseServerDirective(const std::string& directive, ServerConfig& server);
+        bool parseServerDirective(const std::string& directive, ServerBlockConfig& server);
         bool parseLocationDirective(const std::string& directive, LocationConfig& location);
         bool parseSizeValue(const std::string& value, size_t& result);
         bool parsePort(const std::string& value, int& port);

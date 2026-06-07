@@ -1,20 +1,49 @@
 ﻿# Web Server
-A web server is a **virtual host** that hosts many websites, because of various website types(static, PHP, autoindex, etc), each website needs a server for it. Thus a web server contains many runtime servers.
+A web server hosts multiple virtual hosts. Each runtime server represents one virtual host and is selected according to the listening port and Host Header of the incoming request.
 
-- What does a runtime server do?
-
-- It reads the configuration and really builds the server with runtime resources, including: 
-    - creating and binding listen sockets, 
-    - building connections with clients, 
-    - and processing HTTP requests and responding.
-
+```
+WebServer
+│
+├── owns listening sockets  ├── listen socket fd=3 port=80
+|                           │
+|                           |── listen socket fd=4 port=8080  
+|
+|——— Mappings: port -> virtual hosts |
+|                                    ├── port 80
+|                                    │      ├─ RuntimeServer A
+|                                    │      └─ RuntimeServer B
+|                                    │
+|                                    |── port 8080
+|                                    |       ├─ RuntimeServer C
+|                                    |       └─ RuntimeServer D
+│
+|── manage client connections
+|
+├── parses HTTP requests
+└── routes requests
+    
+```
+- What is a runtime server?
+It is the runtime representation of a server block (virtual host).
+```
+RuntimeServer
+│
+├── server_name
+├── listen
+├── root
+├── error_pages
+└── locations
+```
 ### Port
 IP tells which machine, and **port** specifies  which program/service. 
-
->_"Your machine is like a building and the port is the room number"_
+    >_"Your machine is like a building and the port is the room number"_
 ### Socket 
 Socket is the internet fd (file descriptor) for one TCP connection between client and server.
->_"Socket is like the telephone wire for each room or each guest and TCP connection is like the phone call."_
+    >_"Socket is like the telephone wire for each room or each guest and TCP connection is like the phone call."_
+
+### Routing
+Routing is the decision of who solves the request.
+
 ### Location
 If you see a server as a website, then a location is a rule of Routing for that website.
 ```
@@ -26,7 +55,7 @@ If you see a server as a website, then a location is a rule of Routing for that 
 ### Virtual Hosting
 **Virtual Hosting is a 1->N Mapping from port to servers.**
 
-One port may correspond to multiple servers (virtual hosts). It's like one office accommodating people from different departments. `port2servers()` function lists out all possible servers, and `findServerByHost()` pins down which server and which host, for example "Host: cat.com, host: dog.com etc."
+One port may correspond to multiple servers (virtual hosts). It's like one office accommodating people from different departments. `port2servers()` function lists out all possible servers, and `hostRouting()` pins down which server and which host, for example "Host: cat.com, host: dog.com etc."
 
 ```
 server {
@@ -77,9 +106,12 @@ Config is a file of instructions that tells how a server should behave.
 
 - A server serves many clients:
 
- $$1  \text{ server} = 1  \text{ listening socket} +  N \text{ client sockets}$$
+ $$1  \text{ runtime server} = N  \text{ listening sockets} $$
+ $$ 1 \text{ listening socket} =  N \text{ client sockets}$$
 
 - And all the servers listening to a port share the same listening socket, so `port2socket()` is a 1->1 mapping.
+
+$$ 1 \text{ port} = 1 \text{ listening socket}$$
 
  workflow:
 
@@ -113,6 +145,9 @@ Config is a file of instructions that tells how a server should behave.
              fd=10
 ```
 
+- `send()`
+- `recv()`
+- `select()`
 
 ### 3. HTTP (hyper text transfer protocol)
 - how it works

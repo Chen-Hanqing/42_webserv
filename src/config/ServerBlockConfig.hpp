@@ -6,7 +6,7 @@
 
 #include "./LocationConfig.hpp"
 
-struct ServerConfig{
+struct ServerBlockConfig{
     std::vector<int> listen;
     std::vector<std::string> serverName;
     size_t  clientMaxBody;
@@ -15,7 +15,7 @@ struct ServerConfig{
     std::map<int, std::string>  errorPages;
     std::vector<LocationConfig> locations;
 
-    ServerConfig() : clientMaxBody(1048576) {}
+    ServerBlockConfig() : clientMaxBody(1048576) {}
 
     void    addListenPort(int port){
         listen.push_back(port);

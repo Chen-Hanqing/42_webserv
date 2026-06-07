@@ -21,10 +21,8 @@ void WebServer::run() {
         FD_ZERO(&_writeFds);
         updateMaxFd();
 
-        for (size_t i = 0; i < _servers.size(); ++i) {
-            const std::vector<int>& socketFds = _servers[i]->getSocketFds();
-            for (size_t j = 0; j < socketFds.size(); ++j)
-                FD_SET(socketFds[j], &_readFds);
+        for (size_t j = 0; j < _listensocketFds.size(); ++j)
+            FD_SET(_listensocketFds[j], &_readFds); // Add listening sockets to read set
         }
 
         for (std::map<int, ClientConnection*>::iterator it = _clientConnections.begin(); it != _clientConnections.end(); ++it) {
@@ -46,10 +44,10 @@ void WebServer::run() {
         }
 
         for (size_t i = 0; i < _servers.size(); ++i) {
-            const std::vector<int>& socketFds = _servers[i]->getSocketFds();
-            for (size_t j = 0; j < socketFds.size(); ++j) {
-                int serverFd = socketFds[j];
-                if (FD_ISSET(serverFd, &_readFds))
+            const std::vector<int>& listensocketFds = _servers[i]->getListenSockets();
+            for (size_t j = 0; j < listensocketFds.size(); ++j) {
+                int serverFd = listensocketFds[j];
+                if (FD_ISSET(serverFd, &_readFds)) // check if this server's listening socket is ready
                     handleNewConnection(serverFd);
             }
         }
@@ -60,9 +58,11 @@ void WebServer::run() {
 
         for (size_t i = 0; i < clientFds.size(); ++i) {
             int clientFd = clientFds[i];
-            if (_clientConnections.find(clientFd) != _clientConnections.end() && FD_ISSET(clientFd, &_readFds))
+            if (_clientConnections.find(clientFd) != _clientConnections.end() && FD_ISSET(clientFd, &_readFds)) 
+            // check if this client socket is ready for reading
                 handleClientRequest(clientFd);
             if (_clientConnections.find(clientFd) != _clientConnections.end() && FD_ISSET(clientFd, &_writeFds))
+            // check if this client socket is ready for writing
                 handleClientResponse(clientFd);
         }
     }
