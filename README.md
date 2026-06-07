@@ -150,10 +150,12 @@ $$ 1 \text{ port} = 1 \text{ listening socket}$$
              fd=9
              fd=10
 ```
-
+### Multiplexing
+The problem: blocking Input/Output when multiple requests arrive simultaneously.
 - `send()`
 - `recv()`
-- `select()`
+- `select()` asks the Operating System which fds are ready to use.
+> _"The web server is like a state machine that manages tons of fds."_
 
 ### 3. HTTP (hyper text transfer protocol)
 - how it works

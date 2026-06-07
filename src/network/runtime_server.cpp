@@ -6,21 +6,9 @@
 
 RuntimeServer::RuntimeServer(const ServerBlockConfig& serverBlockConfig) : _config(serverBlockConfig) {}
 
-RuntimeServer::~RuntimeServer() {
-    cleanup();
-}
+RuntimeServer::~RuntimeServer() {}
 
 
-bool RuntimeServer::isListeningOnPort(int port) const {
-    return _port2socket.find(port) != _port2socket.end();
-}
-
-int RuntimeServer::findMappedSocket(int port) const {
-    std::map<int, int>::const_iterator it = _port2socket.find(port);
-    if (it == _port2socket.end())
-        return -1;
-    return it->second;
-}
 
 LocationConfig* RuntimeServer::locationRouting(const std::string& path) {
     LocationConfig* bestMatch = NULL;

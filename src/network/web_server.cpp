@@ -32,6 +32,7 @@ std::string WebServer::getLastError() const {
 }
 
 bool WebServer::validateConfig() {
+    _listenPorts.clear();
     if (_config.empty()) {
         std::cerr << "No server configurations found" << std::endl;
         return false;
@@ -61,23 +62,18 @@ bool WebServer::createListenSockets() {
         int sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd == -1) {
             std::cerr << "Failed to create socket for port " << port << ": " << strerror(errno) << std::endl;
-            close(sockfd);
             return false;
         }
         // Set SO_REUSEADDR to allow quick reuse of the port
         int opt = 1;
         if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
             std::cerr << "Failed to set SO_REUSEADDR for port " << port << ": " << strerror(errno) << std::endl;
-            close(sockfd);
-            cleanup();
             return false;
         }
         // Set the socket to non-blocking mode
         int flags = fcntl(sockfd, F_GETFL, 0);
         if (flags == -1 || fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) == -1) {
             std::cerr << "Failed to set non-blocking mode for port " << port << ": " << strerror(errno) << std::endl;
-            close(sockfd);
-            cleanup();
             return false;
         }
         // Bind the socket to the specified IP and port
@@ -88,13 +84,10 @@ bool WebServer::createListenSockets() {
         addr.sin_port = htons(static_cast<unsigned short>(port));
         if (bind(sockfd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) == -1) {
             std::cerr << "Failed to bind to port " << port << ": " << strerror(errno) << std::endl;
-            close(sockfd);
-            cleanup();
             return false;
         }
         // Store the listening fd and port mapping
         _listensocketFds.push_back(sockfd);
-        _port2socket[port] = sockfd;
         _fd2port[sockfd] = port;
     }
     return true;
@@ -109,17 +102,6 @@ bool WebServer::startListening() {
         }
     }
     return true;
-}
-
-
-
-bool WebServer::listensocket_bind(const std::string& configFile) {
-    ConfigParser parser;
-    if (!parser.parseFile(configFile, _config)) {
-        std::cerr << "Failed to parse config file: " << parser.getLastError() << std::endl;
-        return false;
-    }
-    return listensocket_bindFromConfig(_config);
 }
 
 
@@ -144,8 +126,13 @@ bool WebServer::setupPortMapping() {
     return true;
 }
 
-bool WebServer::listensocket_bindFromConfig(const Config& cfg) {
-    _config = cfg;
+//key function 
+bool WebServer::initializeWebserv(const std::string& configFile) {
+    ConfigParser parser;
+    if (!parser.parseFile(configFile, _config)) {
+        std::cerr << "Failed to parse config file: " << parser.getLastError() << std::endl;
+        return false;
+    }
     if (!validateConfig())
         return false;
     if (!createListenSockets()) {
@@ -204,9 +191,9 @@ void WebServer::cleanup() {
             close(_listensocketFds[i]);
     }
     _listensocketFds.clear();
-    _port2socket.clear();
     _fd2port.clear();
     _listenPorts.clear();
+    _config.clear();
 }
 
 
@@ -225,19 +212,6 @@ RuntimeServer* WebServer::hostRouting(const std::string& hostHeader, int port) {
     // Return the first server if no server name matches
 }
 
-
-
-bool WebServer::isListeningOnPort(int port) const {
-    return _port2socket.find(port) != _port2socket.end();
-}
-
-int WebServer::findMappedSocket(int port) const {
-    std::map<int, int>::const_iterator it = _port2socket.find(port);
-    if (it == _port2socket.end())
-        return -1;
-    return it->second;
-}
-
 void WebServer::updateMaxFd() {
     _maxFd = -1;
     for (size_t j = 0; j < _listensocketFds.size(); ++j) {
@@ -248,60 +222,4 @@ void WebServer::updateMaxFd() {
         if (it->first > _maxFd)
             _maxFd = it->first;
     }
-}
-
-void WebServer::handleNewConnection(int serverFd) {
-    while (true) {
-        sockaddr_in clientAddr;
-        socklen_t clientLen = sizeof(clientAddr);
-        int clientFd = accept(serverFd, reinterpret_cast<sockaddr*>(&clientAddr), &clientLen);
-        // accept() returns clientFd.
-        if (clientFd == -1) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-                break;
-            std::cerr << "accept() failed: " << strerror(errno) << std::endl;
-            break;
-        }
-
-        int flags = fcntl(clientFd, F_GETFL, 0);
-        if (flags == -1 || fcntl(clientFd, F_SETFL, flags | O_NONBLOCK) == -1) {
-            close(clientFd);
-            continue;
-        }
-
-        ClientConnection* conn = new ClientConnection(clientFd);
-        _clientConnections[clientFd] = conn;
-        conn->_listen_port = _fd2port[serverFd];
-        if (clientFd > _maxFd)
-            _maxFd = clientFd;
-    }
-}
-
-
-void WebServer::resetConnection(ClientConnection* conn) {
-    if (!conn)
-        return;
-    conn->request_buffer.clear();
-    conn->response_buffer.clear();
-    conn->_bytes_sent = 0;
-    conn->_request_complete = false;
-    conn->_response_ready = false;
-    delete conn->_http_request;
-    delete conn->_http_response;
-    conn->_http_request = NULL;
-    conn->_http_response = NULL;
-    conn->_runtime_server = NULL;
-    conn->_matched_location = NULL;
-    conn->_last_active = time(NULL);
-}
-
-void WebServer::closeClientConnection(int clientFd) {
-    std::map<int, ClientConnection*>::iterator it = _clientConnections.find(clientFd);
-    if (it != _clientConnections.end()) {
-        delete it->second;
-        _clientConnections.erase(it);
-    }
-    if (clientFd != -1)
-        close(clientFd);
-    updateMaxFd();
 }

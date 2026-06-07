@@ -15,7 +15,6 @@ class WebServer {
         std::vector<RuntimeServer*> _servers;
         std::set<int> _listenPorts; // Store unique listen ports for socket creation
         std::vector<int> _listensocketFds;
-        std::map<int, int> _port2socket;
         std::map<int, int> _fd2port;
         std::map<int, std::vector<RuntimeServer*> > _port2servers;
         std::map<int, ClientConnection*> _clientConnections;
@@ -28,9 +27,6 @@ class WebServer {
         bool validateConfig();
         bool createListenSockets();
         bool startListening();
-        bool isListeningOnPort(int port) const;
-        int findMappedSocket(int port) const;
-        bool setupPortMapping();
         bool createRuntimeServer();
         bool setupPortMapping();
         void updateMaxFd();
@@ -48,8 +44,7 @@ class WebServer {
         WebServer();
         ~WebServer();
 
-        bool listensocket_bind(const std::string& configFile);
-        bool listensocket_bindFromConfig(const Config& cfg);
+        bool initializeWebserv(const std::string& configFile);
         bool start();
         void stop();
         void run();
