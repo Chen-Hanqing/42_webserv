@@ -3,7 +3,13 @@
 
 # include "httpResponse.hpp"
 # include "requestParse.hpp"
+# include "LocationConfig.hpp"
 # include <fstream>
+# include <sys/stat.h>
+#include <dirent.h>
+#include <sstream>
+#include <string>
+#include <unistd.h>
 
 /*
 1. 接收 request + validate result
@@ -17,10 +23,20 @@
 class requestDispatcher
 {
     private:
-        httpResponse handlerGet(const requestParse& req);
+        std::vector<LocationConfig> _locations;
+        httpResponse handlerGet(const requestParse& req, LocationConfig& location);
+        httpResponse handlerPost(const requestParse& req, LocationConfig& location);
+        httpResponse handlerDelete(const requestParse& req, LocationConfig& location);
     public:
-        httpResponse dispatch(const requestParse& req, ValidationResult result);
-        
+        httpResponse dispatch(const requestParse& req);
+        LocationConfig findLocation(const std::string& uri);
+    
+        void addLocation(const LocationConfig& loc);
+
+        bool pathExists(const std::string& path, struct stat& s);
+        bool isDir(const struct stat& s);
+        bool isFile(const struct stat& s);
+        std::string buildPath(std::string& pathRequest, LocationConfig& location);
 };
 
 #endif

@@ -19,6 +19,7 @@ class httpResponse
 		int _status_code;
 		std::string _status_message;
         std::string _contentType;
+        bool _keepAlive;
         std::map<std::string, std::string> _headers;
         std::string _body;
 
@@ -27,16 +28,17 @@ class httpResponse
         explicit httpResponse(int code);
         
         void setStatusCode(int code);
-        void setHeaders(const requestParse& request);
+        void setHeaders();
         void setBody(std::string body);
         void setContentType(std::string contentType);
+        void setKeepAlive(bool keepAlive);
 
         void addHeadersValue(const std::string& key, const std::string& value);
         std::string getStatusMessage() const;
 
         std::string buildStatusLine();
         std::string buildHeaders();
-        std::string buildResponse(const requestParse& request);
+        std::string buildResponse();
 };
 
 #endif

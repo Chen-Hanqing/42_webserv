@@ -1,17 +1,11 @@
 #include "requestParse.hpp"
 
-static std::string trim(const std::string &s)
+void requestParse::parseBody(const std::string &request)
 {
-    size_t start = 0;
-    size_t end = s.size();
-
-    while (start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\r'))
-        start++;
-
-    while (end > start && (s[end - 1] == ' ' || s[end - 1] == '\t' || s[end - 1] == '\r'))
-        end--;
-
-    return s.substr(start, end - start);
+    size_t headEnd = request.find("\r\n\r\n");
+    if (headEnd == std::string::npos)
+        return ;
+    _body = request.substr(headEnd + 4);
 }
 
 // get headers line by line, seperate by ":"
@@ -26,14 +20,14 @@ bool requestParse::parseHeaders(const std::string &headersStr)
         size_t pos = line.find(":");
         if (pos == std::string::npos)
             return false;
-        key = trim(line.substr(0, pos));
+        key = toLower(trim(line.substr(0, pos)));
         value = trim(line.substr(pos + 1));
         _headers[key] = value;
     }
     return true;
 }
 
-static std::string getHeadersStr(const std::string& request)
+static std::string getHeadersStr(const std::string &request)
 {
     size_t startPos = request.find("\r\n");
     size_t endPos = request.find("\r\n\r\n");
@@ -42,15 +36,29 @@ static std::string getHeadersStr(const std::string& request)
     return (request.substr(startPos + 2, endPos - startPos - 2));
 }
 
-static std::vector<std::string> splitBySpace(const std::string &requestLine)
+void requestParse::parseQuery(std::string &str)
 {
-    std::vector<std::string> results;
-    std::string part;
+    size_t i = 0;
+    while (i < str.size())
+    {
+        size_t eqPos = str.find('=', i);
+        if (eqPos == std::string::npos)
+            return ;
 
-    std::istringstream iss(requestLine);
-    while(iss >> part)
-        results.push_back(part);
-    return results;
+        size_t andPos = str.find('&', eqPos);
+        std::string key = str.substr(i, eqPos - i);
+        std::string value;
+        if (andPos == std::string::npos)
+            value = str.substr(eqPos + 1);
+        else
+            value = str.substr(eqPos + 1, andPos - eqPos - 1);
+        key = urlDecode(key);
+        value = urlDecode(value);
+        _queryParams[key] = value;
+        if (andPos == std::string::npos)
+            break ;
+        i = andPos + 1;
+    }
 }
 
 bool requestParse::parseRequestLine(const std::string &requestLine) // need to check line
@@ -61,12 +69,15 @@ bool requestParse::parseRequestLine(const std::string &requestLine) // need to c
     if (parts.size() != 3)
         return false;
     _method = parts[0];
-    _URI = parts[1];
+    _rawURI = parts[1];
+    splitURI(_rawURI);
+    _path = urlDecode(_path);
+    parseQuery(_queryString);
     _version = parts[2];
     return true;
 }
 
-static std::string getRequestLine(const std::string& request)
+static std::string getRequestLine(const std::string &request)
 {
     size_t pos = request.find("\r\n");
     if (pos == std::string::npos)
@@ -86,64 +97,6 @@ bool requestParse::parseRequest(const std::string &request)
     std::string headersStr = getHeadersStr(request);
     if (!parseHeaders(headersStr))
         return false;
-
-    // parseBody(buffer, req); // 第一周先空着
-
+    parseBody(request);
     return true;
-}
-
-// validate request
-    // if (method : get post delete) 
-        // 200 OK
-    // else
-        // 405 Method Not Allowed
-    // http version is 1.1
-        // if not, 505 HTTP Version Not Supported
-    // if host
-        // not, 400 Bad Request
-
-ValidationResult requestParse::validateRequest()
-{
-    if(_method != "GET" && _method != "POST" && _method != "DELETE")
-        return METHOD_NOT_ALLOWED;
-    if (_version != "HTTP/1.1")
-        return HTTP_VERSION_NOT_SUPPORTED;
-    if (_headers.find("Host") == _headers.end() || _headers["Host"].empty())
-        return BAD_REQUEST;
-    return OK;
-}
-
-// --------------------- getter ---------------------
-
-std::string requestParse::getHeader(std::string key) const
-{
-    std::map<std::string, std::string>::const_iterator it = _headers.find(key);
-    if (it != _headers.end())
-        return it->second;
-    return "";
-}
-
-const std::map<std::string, std::string>& requestParse::getHeader() const
-{
-    return _headers;
-}
-
-std::string requestParse::getMethod() const
-{
-    return _method;
-}
-
-std::string requestParse::getURI() const
-{
-    return _URI;
-}
-
-std::string requestParse::getVersion() const
-{
-    return _version;
-}
-
-std::string requestParse::getBody() const
-{
-    return _body;
 }

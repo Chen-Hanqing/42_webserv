@@ -7,7 +7,8 @@
 
 // Hello World
 
-httpResponse::httpResponse() : _status_code(0)
+httpResponse::httpResponse() 
+	: _status_code(0), _keepAlive(false)
 {
 }
 
@@ -25,14 +26,23 @@ void httpResponse::setContentType(std::string contentType)
 	_contentType = contentType;
 }
 
+void httpResponse::setKeepAlive(bool keepAlive)
+{
+	_keepAlive = keepAlive;
+}
+
 std::string httpResponse::getStatusMessage() const
 {
 	switch(_status_code)
 	{
 		case 200: return "OK";
+		case 201: return "Created";
 		case 400: return "Bad Request";
+		case 403: return "Forbidden";
 		case 404: return "Not Found";
 		case 405: return "Method Not Allowed";
+		case 413: return "Payload Too Large";
+		case 500: return "Internal Server Error";
 		case 505: return "Http Version Not Supported";
 		default: return "Unknown Status";
 	}
@@ -80,9 +90,9 @@ void httpResponse::addHeadersValue(const std::string& key, const std::string& va
 // without redir : Location: /newpage
 // POST 上传成功：Content-Type: text/html Content-Length: xxx
 // Delete Content-Length: 0
-void httpResponse::setHeaders(const requestParse& request)
+void httpResponse::setHeaders()
 {
-	 _headers.clear();
+	_headers.clear();
 	addHeadersValue("Date", getCurrentTime());
     addHeadersValue("Server", "webserv");
 
@@ -91,16 +101,16 @@ void httpResponse::setHeaders(const requestParse& request)
 
     addHeadersValue("Content-Type", _contentType);
 
-    if (request.getHeader("Connection") == "keep-alive")
+    if (_keepAlive)
         addHeadersValue("Connection", "keep-alive");
     else
         addHeadersValue("Connection", "close");
 }
 
-std::string httpResponse::buildResponse(const requestParse& request)
+std::string httpResponse::buildResponse()
 {
 	std::string response;
-	setHeaders(request);
+	setHeaders();
 
 	std::string statusLine = buildStatusLine();
 	std::string headersStr = buildHeaders();

@@ -1,70 +1,108 @@
 #include "requestDispatcher.hpp"
 
-/*
-1. 接收 request + validate result
-2. 如果 validate 不通过 → 直接 return error response
-3. 根据 method 分发
-4. 调用 Router（找到对应 handler）
-5. 调用 MethodHandler 执行
-6. 返回 response
-*/
-
-bool endsWith(const std::string& str, const std::string& suffix)
+std::string requestDispatcher::buildPath(std::string& pathRequest, LocationConfig& location)
 {
-    if (suffix.size() > str.size())
-        return false;
-
-    return str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+    std::string remaining = pathRequest.substr(location.path.length());
+    std::string path = location.root + '/' + remaining;
+    // // ----------- for test ----------- 
+    // std::cout << "FINAL PATH: " << path << std::endl;
+    // // ----------- for test ----------- 
+    return path;
 }
 
-std::string getContentType(const std::string& path)
+bool requestDispatcher::pathExists(const std::string& path, struct stat& s)
 {
-    if (endsWith(path, ".html"))
-        return "text/html";
-    if (endsWith(path, ".css"))
-        return "text/css";
-    if (endsWith(path, ".js"))
-        return "application/javascript";
-    if (endsWith(path, ".png"))
-        return "image/png";
-    if (endsWith(path, ".jpg"))
-        return "image/jpeg";
-    return "application/octet-stream";
+    return (stat(path.c_str(), &s) == 0);
 }
 
-/*.  handlerGet
-    build path (router)
-    if the file under the path can be opened
-        yes, read file
-            get and set body to response
-        no, return 404 response
-*/
-httpResponse requestDispatcher::handlerGet(const requestParse& req)
+bool requestDispatcher::isDir(const struct stat& s)
 {
-    std::string uri = req.getURI();
-    if (uri == "/")
-        uri = "/index.html";
-    std::string path;
-    path = "./www" + uri;
-    std::ifstream file(path.c_str());
-    if (!file.is_open())
-        return httpResponse(404);
-    std::stringstream body_ss;
-    body_ss << file.rdbuf();
+    return S_ISDIR(s.st_mode);
+}
 
-    httpResponse res(200);
-    res.setBody(body_ss.str());
-    res.setContentType(getContentType(path));
+bool requestDispatcher::isFile(const struct stat& s)
+{
+    return S_ISREG(s.st_mode);
+}
+
+bool isMethodAllowed(std::string& method, LocationConfig& location)
+{
+    if (location.allowMethods.empty())
+        return true;
+    for (size_t i = 0; i < location.allowMethods.size(); i++)
+    {
+        if (method == location.allowMethods[i])
+            return true;
+    }
+    return false;
+}
+
+LocationConfig requestDispatcher::findLocation(const std::string& path)
+{
+    LocationConfig best;
+    size_t best_len = 0;
+
+    for (size_t i = 0; i < _locations.size(); i++)
+    {
+        const std::string& loc_path = _locations[i].path;
+
+        if (path.compare(0, loc_path.length(), loc_path) == 0 &&
+            (path.length() == loc_path.length() || path[loc_path.length()] == '/'))
+        {
+            if (loc_path.length() > best_len)
+            {
+                best = _locations[i];
+                best_len = loc_path.length();
+            }
+        }
+    }
+    if (best.path.empty())
+    {
+        best.path = "/";
+        best.root = "./www";
+    }
+    return best;
+}
+
+httpResponse requestDispatcher::dispatch(const requestParse& req)
+{
+    httpResponse res;
+    
+    ValidationResult result = req.validateRequest();
+    if (result != OK)
+    {
+        std::cout << "Code from request parse: " << result << std::endl;
+        res = httpResponse(result);
+    }
+    else
+    {
+        std::string path = req.getPath();
+        LocationConfig location = findLocation(path);
+        std::string method = req.getMethod();
+        if (!isMethodAllowed(method, location))
+            res = httpResponse(405);
+        else if (method == "GET")
+            res = handlerGet(req, location);
+        else if (method == "POST")
+            res = handlerPost(req, location);
+        else if (method == "DELETE")
+            res = handlerDelete(req, location);
+
+        // // ------- test ---------
+        // std::cout << "raw path: " << path << std::endl;
+        // std::cout << "LOCATION: " << location.path << std::endl;
+        // std::cout << "ROOT: " << location.root << std::endl;
+        // // ------- test ---------
+
+    }
+    
+    bool keepAlive = (req.getHeader("Connection") != "close");
+    res.setKeepAlive(keepAlive);
+
     return res;
 }
 
-httpResponse requestDispatcher::dispatch(const requestParse& req, ValidationResult result)
+void requestDispatcher::addLocation(const LocationConfig& loc)
 {
-    if (req.getMethod() == "GET")
-        return handlerGet(req);
-    // else if (req.getMethod() == "POST")
-    //     return handlerPost(req);
-    // else if (req.getMethod() == "DELETE")
-    //     return handlerDelet(req);
-    return httpResponse(result);
+    _locations.push_back(loc);
 }
