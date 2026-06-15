@@ -16,9 +16,9 @@ class WebServer {
         std::vector<RuntimeServer*> _servers;
         std::set<int> _listenPorts; // Store unique listen ports for socket creation
         std::vector<int> _listensocketFds;
-        std::map<int, int> _fd2port;
-        std::map<int, std::vector<RuntimeServer*> > _port2servers;
-        std::map<int, ClientConnection*> _clientConnections;
+        std::map<int, int> _fd2port; // key: listening socket fd, value: port number
+        std::map<int, std::vector<RuntimeServer*> > _port2servers; // key: port, value: vector of RuntimeServer* listening on that port
+        std::map<int, ClientConnection*> _clientConnections; // key: clientFd, value: ClientConnection*
         bool _listensocketBound;
         bool _running;
         fd_set _readFds;

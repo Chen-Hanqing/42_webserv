@@ -55,6 +55,7 @@ bool WebServer::validateConfig() {
     return true;
 }
 
+//key function socket() and bind()
 bool WebServer::createListenSockets() {
     // Create listening socket and bind the socket for each port
     for (std::set<int>::const_iterator it = _listenPorts.begin(); it != _listenPorts.end(); ++it) {
@@ -93,6 +94,7 @@ bool WebServer::createListenSockets() {
     return true;
 }
 
+//key function listen()
 bool WebServer::startListening() {
     // Start listening on all bound sockets
     for (size_t i = 0; i < _listensocketFds.size(); ++i) {
@@ -115,6 +117,7 @@ bool WebServer::createRuntimeServer() {
     return true;
 }
 
+// set up the _port2servers mapping
 bool WebServer::setupPortMapping() {
     for (size_t i = 0; i < _servers.size(); ++i) {
         RuntimeServer* server = _servers[i];

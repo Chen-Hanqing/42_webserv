@@ -97,11 +97,13 @@ Config is a file of instructions that tells how a server should behave.
 
 - `socket()` create a socket descriptor
 ### the server side
+
+- `bind()`  `bind(listen sockfd, port 8000)` 
+    >_"Register the hotel address as room 8080 (port 8080) in the building"_
+
 - `listen()` tells the kernel that this socket is on the server side, not the client side 
     >_"Server standing by the gate and ready to welcome guests"_ 
 
-- `bind()` server establish a connection with client `bind(sockfd, port 8000)` 
-    >_"Assign a room to the guest"_
 
 - `accept()` the server wait for the connection request from clients, it creates new **client socket**
     >_"Server opens the door"_
