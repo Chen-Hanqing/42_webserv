@@ -23,13 +23,13 @@
 class requestDispatcher
 {
     private:
-        std::vector<LocationConfig> _locations;
         httpResponse handlerGet(const requestParse& req, LocationConfig& location);
         httpResponse handlerPost(const requestParse& req, LocationConfig& location);
         httpResponse handlerDelete(const requestParse& req, LocationConfig& location);
+
     public:
-        httpResponse dispatch(const requestParse& req);
-        LocationConfig findLocation(const std::string& uri);
+        httpResponse dispatch(const requestParse& req, LocationConfig location);
+        // LocationConfig findLocation(const std::string& uri);
     
         void addLocation(const LocationConfig& loc);
 

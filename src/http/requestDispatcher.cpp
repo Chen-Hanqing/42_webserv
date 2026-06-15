@@ -37,34 +37,36 @@ bool isMethodAllowed(std::string& method, LocationConfig& location)
     return false;
 }
 
-LocationConfig requestDispatcher::findLocation(const std::string& path)
-{
-    LocationConfig best;
-    size_t best_len = 0;
+// ----------- repeat, to be deleted -----------
+// LocationConfig requestDispatcher::findLocation(const std::string& path)
+// {
+//     LocationConfig best;
+//     size_t best_len = 0;
 
-    for (size_t i = 0; i < _locations.size(); i++)
-    {
-        const std::string& loc_path = _locations[i].path;
+//     for (size_t i = 0; i < _locations.size(); i++)
+//     {
+//         const std::string& loc_path = _locations[i].path;
 
-        if (path.compare(0, loc_path.length(), loc_path) == 0 &&
-            (path.length() == loc_path.length() || path[loc_path.length()] == '/'))
-        {
-            if (loc_path.length() > best_len)
-            {
-                best = _locations[i];
-                best_len = loc_path.length();
-            }
-        }
-    }
-    if (best.path.empty())
-    {
-        best.path = "/";
-        best.root = "./www";
-    }
-    return best;
-}
+//         if (path.compare(0, loc_path.length(), loc_path) == 0 &&
+//             (path.length() == loc_path.length() || path[loc_path.length()] == '/'))
+//         {
+//             if (loc_path.length() > best_len)
+//             {
+//                 best = _locations[i];
+//                 best_len = loc_path.length();
+//             }
+//         }
+//     }
+//     if (best.path.empty())
+//     {
+//         best.path = "/";
+//         best.root = "./www";
+//     }
+//     return best;
+// }
+// ----------- repeat, to be deleted -----------
 
-httpResponse requestDispatcher::dispatch(const requestParse& req)
+httpResponse requestDispatcher::dispatch(const requestParse& req, LocationConfig location)
 {
     httpResponse res;
     
@@ -77,7 +79,7 @@ httpResponse requestDispatcher::dispatch(const requestParse& req)
     else
     {
         std::string path = req.getPath();
-        LocationConfig location = findLocation(path);
+        // LocationConfig location = findLocation(path);
         std::string method = req.getMethod();
         if (!isMethodAllowed(method, location))
             res = httpResponse(405);
