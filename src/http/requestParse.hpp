@@ -40,7 +40,8 @@ class requestParse
         bool hasHeader(const std::string& key) const;
         
         static std::string trim(const std::string &s);
-        std::string urlDecode(const std::string &str);std::vector<std::string> splitBySpace(const std::string &requestLine);
+        std::string urlDecode(const std::string &str);
+        std::vector<std::string> splitBySpace(const std::string &requestLine);
 
         const std::map<std::string, std::string> getHeaders() const;
         std::string getHeader(std::string key) const;

@@ -1,6 +1,7 @@
 #include "web_server.hpp"
 #include "runtime_server.hpp"
 #include "../config/configparser.hpp"
+#include "../http/requestDispatcher.hpp"
 
 #include <arpa/inet.h>
 #include <cerrno>
@@ -12,6 +13,13 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+bool WebServer::parseHttpRequest(ClientConnection* conn) {
+    if (!conn || !conn->_http_request)
+        return false;
+    return conn->_http_request->parseRequest(conn->request_buffer);
+}
+
+//key function recv()
 void WebServer::handleClientRequest(int clientFd) {
     std::map<int, ClientConnection*>::iterator it = _clientConnections.find(clientFd);
     if (it == _clientConnections.end())
@@ -32,9 +40,9 @@ void WebServer::handleClientRequest(int clientFd) {
     conn->_last_active = time(NULL);
 
     if (!conn->_http_request)
-        conn->_http_request = new HttpRequest();
+        conn->_http_request = new requestParse();
     if (!conn->_http_response)
-        conn->_http_response = new HttpResponse();
+        conn->_http_response = new httpResponse();
 
     if (!conn->_http_request->isRequestComplete(conn->request_buffer))
         return;
@@ -49,12 +57,18 @@ void WebServer::handleClientRequest(int clientFd) {
     std::string host = conn->_http_request->getHost();
     conn->_runtime_server = hostRouting(host, conn->_listen_port);
     if (conn->_runtime_server)
-        conn->_matched_location = conn->_runtime_server->locationRouting(conn->_http_request->getURI());
+        conn->_matched_location = conn->_runtime_server->locationRouting(conn->_http_request->getPath());
+    requestDispatcher dispatcher;
 
-    buildHttpResponse(conn);
+    if (conn->_matched_location)
+    {
+        httpResponse res = dispatcher.dispatch(*conn->_http_request, *conn->_matched_location);
+        conn->response_buffer = res.buildResponse();
+    }
     conn->_response_ready = true;
 }
 
+//key function send()
 void WebServer::handleClientResponse(int clientFd) {
     std::map<int, ClientConnection*>::iterator it = _clientConnections.find(clientFd);
     if (it == _clientConnections.end())

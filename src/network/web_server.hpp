@@ -8,6 +8,7 @@
 # include <string>
 # include <sys/select.h>
 # include <vector>
+# include <set>
 
 class WebServer {
     private:

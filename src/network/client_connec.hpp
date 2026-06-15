@@ -4,7 +4,7 @@
 # include <ctime>
 # include <string>
 
-# include "../http/httpRequest.hpp"
+# include "../http/requestParse.hpp"
 # include "../http/httpResponse.hpp"
 
 struct LocationConfig;
@@ -17,8 +17,8 @@ class ClientConnection {
         std::string request_buffer;
         std::string response_buffer;
 
-        HttpRequest* _http_request;
-        HttpResponse* _http_response;
+        requestParse* _http_request;
+        httpResponse* _http_response;
 
         bool _request_complete;
         bool _response_ready;

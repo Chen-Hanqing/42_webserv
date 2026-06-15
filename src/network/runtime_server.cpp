@@ -4,7 +4,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
-RuntimeServer::RuntimeServer(const ServerBlockConfig& serverBlockConfig) : _config(serverBlockConfig) {}
+RuntimeServer::RuntimeServer(const ServerConfig& serverBlockConfig) : _config(serverBlockConfig) {}
 
 RuntimeServer::~RuntimeServer() {}
 

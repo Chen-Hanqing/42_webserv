@@ -38,7 +38,7 @@ bool WebServer::validateConfig() {
         return false;
     }
     for (size_t i = 0; i < _config.getServerCount(); ++i) {
-        const ServerBlockConfig& server = _config.getServer(i);
+        const ServerConfig& server = _config.getServer(i);
         if (server.listen.empty()) {
             std::cerr << "Server " << i << " has no listen ports" << std::endl;
             return false;
@@ -108,7 +108,7 @@ bool WebServer::startListening() {
 
 bool WebServer::createRuntimeServer() {
     for (size_t i = 0; i < _config.getServerCount(); ++i) {
-        const ServerBlockConfig& serverBlockConfig = _config.getServer(i);
+        const ServerConfig& serverBlockConfig = _config.getServer(i);
         RuntimeServer* server = new RuntimeServer(serverBlockConfig);
         _servers.push_back(server);
     }

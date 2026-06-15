@@ -23,7 +23,6 @@ void WebServer::run() {
 
         for (size_t j = 0; j < _listensocketFds.size(); ++j)
             FD_SET(_listensocketFds[j], &_readFds); // Add listening sockets to read set
-        }
 
         for (std::map<int, ClientConnection*>::iterator it = _clientConnections.begin(); it != _clientConnections.end(); ++it) {
             FD_SET(it->first, &_readFds);

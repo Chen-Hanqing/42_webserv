@@ -1,5 +1,5 @@
 ﻿# Web Server
-A WebServer is the actual HTTP server process. It owns the listening sockets, accepts client connections, and routes requests to the appropriate RuntimeServer.
+A WebServer is the actual HTTP server process that receives and handles HTTP requests. It owns the listening sockets, accepts client connections, and routes requests to the appropriate RuntimeServer.
 
 Each RuntimeServer serves a particular websites or a group of websites.
 
@@ -42,10 +42,10 @@ RuntimeServer
 ```
 ### Port
 IP tells which machine, and **port** specifies  which program/service. 
-    >_"Your machine is like a building and the port is the room number"_
+>_"Your machine is like a building and the port is the room number"_
 ### Socket 
 Socket is the internet fd (file descriptor) for one TCP connection between client and server.
-    >_"Socket is like the telephone wire for each room or each guest and TCP connection is like the phone call."_
+>_"Socket is like the telephone wire for each room or each guest and TCP connection is like the phone call."_
 
 ### Routing
 Routing is the decision of who solves the request.

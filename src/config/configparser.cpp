@@ -85,7 +85,7 @@ bool ConfigParser::parseIndexList(const std::vector<std::string>& words, std::ve
     return true;
 }
 
-bool ConfigParser::parseServerDirective(const std::string& directive, ServerBlockConfig& server) {
+bool ConfigParser::parseServerDirective(const std::string& directive, ServerConfig& server) {
     std::string line = trim(directive);
     if (line.empty())
         return true;
@@ -264,7 +264,7 @@ bool ConfigParser::parseLocationBlock(const std::string& path, const std::string
     return true;
 }
 
-bool ConfigParser::parseServerBlock(const std::string& block, ServerBlockConfig& server) {
+bool ConfigParser::parseServerBlock(const std::string& block, ServerConfig& server) {
     std::string::size_type pos = 0;
     while (pos < block.size()) {
         while (pos < block.size() && std::isspace(static_cast<unsigned char>(block[pos])))
@@ -362,7 +362,7 @@ bool ConfigParser::parseConfigText(const std::string& content, Config& config) {
             return false;
         }
 
-        ServerBlockConfig server;
+        ServerConfig server;
         if (!parseServerBlock(content.substr(bodyStart, pos - bodyStart), server))
             return false;
         if (server.listen.empty())

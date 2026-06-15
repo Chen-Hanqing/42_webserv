@@ -1,7 +1,7 @@
 #ifndef RUNTIME_SERVER_HPP
 # define RUNTIME_SERVER_HPP
 
-# include "../config/ServerBlockConfig.hpp"
+# include "../config/ServerConfig.hpp"
 # include "../config/LocationConfig.hpp"
 
 # include <cerrno>
@@ -15,13 +15,13 @@
 
 class RuntimeServer {
     private:
-        ServerBlockConfig _config;
+        ServerConfig _config;
 
     public:
-        RuntimeServer(const ServerBlockConfig& blockConfig);
+        RuntimeServer(const ServerConfig& blockConfig);
         ~RuntimeServer();
 
-        const ServerBlockConfig& getConfig() const { return _config; }
+        const ServerConfig& getConfig() const { return _config; }
         LocationConfig* locationRouting(const std::string& path);
         bool matchesServerName(const std::string& hostHeader) const;
 };

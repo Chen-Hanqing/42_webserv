@@ -23,6 +23,7 @@ httpResponse requestDispatcher::handlerPost(const requestParse& req, LocationCon
 
     // 2. build path
     std::string path = buildPath(pathRequest, location);
+    
     // 3. security check (nginx style safe guard)
     if (path.find("..") != std::string::npos)
         return httpResponse(403);
