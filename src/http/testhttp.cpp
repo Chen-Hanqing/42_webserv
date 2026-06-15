@@ -35,10 +35,10 @@ int main()
     req.parseRequest(rawRequestPost);
 
     requestDispatcher dispatcher;
-    httpResponse res = dispatcher.dispatch(req);
+    // httpResponse res = dispatcher.dispatch(req);
 
     std::cout << "===== RESPONSE =====\n";
-    std::cout << res.buildResponse() << std::endl; 
+    // std::cout << res.buildResponse() << std::endl; 
 
     return 0;
 }

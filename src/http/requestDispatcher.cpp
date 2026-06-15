@@ -104,7 +104,3 @@ httpResponse requestDispatcher::dispatch(const requestParse& req, LocationConfig
     return res;
 }
 
-void requestDispatcher::addLocation(const LocationConfig& loc)
-{
-    _locations.push_back(loc);
-}

@@ -30,8 +30,6 @@ class requestDispatcher
     public:
         httpResponse dispatch(const requestParse& req, LocationConfig location);
         // LocationConfig findLocation(const std::string& uri);
-    
-        void addLocation(const LocationConfig& loc);
 
         bool pathExists(const std::string& path, struct stat& s);
         bool isDir(const struct stat& s);
