@@ -1,43 +1,38 @@
 #include "CGIHandler.hpp"
 
-static char**   buildEnv(const requestParse& req){
-    std::vector<std::string>    env;
 
-    env.push_back("REQUEST_METHOD=" + req.getMethod());
-    env.push_back("QUERY_STRING=" + req.getQueryString());
-    env.push_back("CONTENT_LENGTH=" + req.getHeader("content-length"));
-    env.push_back("CONTENT_TYPE=" + req.getHeader("content-type"));
+//check cgi or not, check config, call cgi-environment, call cgi-process, parse cgi output, return results.
 
+bool    CGIHandler::execute(const requestParse& req, const std::string& interpreter, const std::string& scriptPath,
+        std::map<std::string, std::string>& headers, std::string& body)
+{
+
+    std::string rawOutput;
+    char**  envp = CGIEnvironment::buildEnv(req, scriptPath);
+    bool    success = CGIProcess::execute(interpreter, scriptPath, envp, req.getBody(), rawOutput);
+    CGIEnvironment::freeEnv(envp);
+    if (!sucess)
+        return false;
+    return parseCGIOutput(rawOutput, headers, body);
 }
 
-bool    CGIHandler::execute(const std::string& interpreter, const std::string& script,
-            const requestParse& request, std::string& output)
-{
-    int stdoutPipe[2];
-    if (pipe(stdoutPipe) < 0)
+bool    CGIHandler::parseCGIOutput(const std::string& raw, std::map<std::string, std::string>& headers, std::string& body){
+    size_t  pos = raw.find("\r\n\r\n");
+    if (pos == std::string::npos)
+        pos = raw.find("\n\n");
+    if (pos == std::string::npos)
         return false;
-    pid_t   pid = fork();
-    if (pid < 0)
-        return false;
-    if (pid == 0){
-        dup2(stdoutPipe[1], STDOUT_FILENO);
-        close(stdoutPipe[0]);
-        close(stdoutPipe[1]);
-        char    *argv[3];
-        argv[0] = const_cast<char*>(interpreter.c_str());
-        argv[1] = const_cast<char*>(scriptPath.c_str());
-        argv[2] = NULL;
-        char**  envp = buildEnv(request);
-        execve(interpreter.c_str(), argv, envp);
-        freeEnv(envp);
-        exit(1);
+    std::string headerPart = raw.substr(0, pos);
+    body = raw.substr(pos+4);
+    std::stringstream ss(headerPart);
+    std::string line;
+    while (std::getline(ss, line)){
+        size_t  colon = line.find(':');
+        if (colon == std::string::npos)
+            continue;
+        std::string key = requestParse::trim(line.substr(0, colon));
+        std::string value = requestParse::trim(line.substr(colon+1));
+        headers[key] = value;
     }
-    close(stdoutPipe[1]);
-    char    buffer[4096];
-    ssize_t bytes;
-    while ((bytes = read(stdoutPipe[0], buffer, sizeof(buffer))) > 0)
-        output.append(buffer, bytes);
-    close(stdoutPipe[0]);
-    waitpid(pid, NULL, 0);
     return true;
 }
