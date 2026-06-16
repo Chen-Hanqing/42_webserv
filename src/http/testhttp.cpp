@@ -74,7 +74,6 @@ int main()
         requestParse req;
         req.parseRequest(tests[i]);
 
-        // ⚠️ 关键：你现在 dispatcher 需要 server + location
         httpResponse res = dispatcher.dispatch(req, location, server);
 
         std::cout << "----- RESPONSE -----\n";

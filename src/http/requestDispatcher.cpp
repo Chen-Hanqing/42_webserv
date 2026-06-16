@@ -113,9 +113,5 @@ httpResponse requestDispatcher::dispatch(const requestParse& req, LocationConfig
 
     }
     return finalizeResponse(res, server, req);
-    // bool keepAlive = (req.getHeader("Connection") != "close");
-    // res.setKeepAlive(keepAlive);
-
-    // return res;
 }
 
