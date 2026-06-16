@@ -37,6 +37,15 @@ bool isMethodAllowed(std::string& method, LocationConfig& location)
     return false;
 }
 
+httpResponse requestDispatcher::finalizeResponse(httpResponse res, const ServerConfig& server, const requestParse& req)
+{
+    bool keepAlive = (req.getHeader("Connection") != "close");
+    res.setKeepAlive(keepAlive);
+
+    res.finalize(server);   // ⭐ error_page 在这里统一处理
+    return res;
+}
+
 // ----------- repeat, to be deleted -----------
 // LocationConfig requestDispatcher::findLocation(const std::string& path)
 // {
@@ -66,15 +75,15 @@ bool isMethodAllowed(std::string& method, LocationConfig& location)
 // }
 // ----------- repeat, to be deleted -----------
 
-httpResponse requestDispatcher::dispatch(const requestParse& req, LocationConfig location)
+httpResponse requestDispatcher::dispatch(const requestParse& req, LocationConfig& location, const ServerConfig& server)
 {
     httpResponse res;
     
     ValidationResult result = req.validateRequest();
     if (result != OK)
     {
-        std::cout << "Code from request parse: " << result << std::endl;
-        res = httpResponse(result);
+        res.setStatus(result);
+        return finalizeResponse(res, server, req);
     }
     else
     {
@@ -82,13 +91,19 @@ httpResponse requestDispatcher::dispatch(const requestParse& req, LocationConfig
         // LocationConfig location = findLocation(path);
         std::string method = req.getMethod();
         if (!isMethodAllowed(method, location))
-            res = httpResponse(405);
+        {
+            res.setStatus(405);
+            return finalizeResponse(res, server, req);
+            // res = httpResponse(405);
+        }
         else if (method == "GET")
             res = handlerGet(req, location);
         else if (method == "POST")
             res = handlerPost(req, location);
         else if (method == "DELETE")
             res = handlerDelete(req, location);
+        else
+            res.setStatus(501);
 
         // // ------- test ---------
         // std::cout << "raw path: " << path << std::endl;
@@ -97,10 +112,10 @@ httpResponse requestDispatcher::dispatch(const requestParse& req, LocationConfig
         // // ------- test ---------
 
     }
-    
-    bool keepAlive = (req.getHeader("Connection") != "close");
-    res.setKeepAlive(keepAlive);
+    return finalizeResponse(res, server, req);
+    // bool keepAlive = (req.getHeader("Connection") != "close");
+    // res.setKeepAlive(keepAlive);
 
-    return res;
+    // return res;
 }
 

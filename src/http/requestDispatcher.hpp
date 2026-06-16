@@ -4,12 +4,14 @@
 # include "httpResponse.hpp"
 # include "requestParse.hpp"
 # include "LocationConfig.hpp"
+# include "ServerConfig.hpp"
+
 # include <fstream>
 # include <sys/stat.h>
-#include <dirent.h>
-#include <sstream>
-#include <string>
-#include <unistd.h>
+# include <dirent.h>
+# include <sstream>
+# include <string>
+# include <unistd.h>
 
 /*
 1. 接收 request + validate result
@@ -28,7 +30,8 @@ class requestDispatcher
         httpResponse handlerDelete(const requestParse& req, LocationConfig& location);
 
     public:
-        httpResponse dispatch(const requestParse& req, LocationConfig location);
+        httpResponse dispatch(const requestParse& req, LocationConfig& location, const ServerConfig& server);
+        httpResponse finalizeResponse(httpResponse res, const ServerConfig& server, const requestParse& req);
         // LocationConfig findLocation(const std::string& uri);
 
         bool pathExists(const std::string& path, struct stat& s);
