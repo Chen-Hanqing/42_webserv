@@ -18,6 +18,24 @@ void ConfigParser::setError(const std::string& message) {
     _lastError = message;
 }
 
+static std::string skipComments(const std::string& content)
+{
+    std::stringstream input(content);
+    std::stringstream output;
+    std::string line;
+
+    while (std::getline(input, line))
+    {
+        size_t pos = line.find('#');
+
+        if (pos != std::string::npos)
+            line.erase(pos);
+
+        output << line << '\n';
+    }
+    return output.str();
+}
+
 std::string ConfigParser::trim(const std::string& value) {
     std::string::size_type begin = 0;
     while (begin < value.size() && std::isspace(static_cast<unsigned char>(value[begin])))
@@ -54,6 +72,16 @@ bool ConfigParser::parsePort(const std::string& value, int& port) {
     if (parsed < 1 || parsed > 65535)
         return false;
     port = static_cast<int>(parsed);
+    return true;
+}
+
+bool ConfigParser::parseErrorCode(const std::string& value, int& code) {
+    if (!isUnsignedNumber(value))
+        return false;
+    long parsed = std::strtol(value.c_str(), NULL, 10);
+    if (parsed < 100 || parsed > 599)
+        return false;
+    code = static_cast<int>(parsed);
     return true;
 }
 
@@ -153,13 +181,10 @@ bool ConfigParser::parseServerDirective(const std::string& directive, ServerConf
             setError("error_page requires at least one code and one path");
             return false;
         }
-        if ((words.size() - 1) % 2 != 0) {
-            setError("error_page must use code/path pairs");
-            return false;
-        }
-        for (size_t i = 1; i + 1 < words.size(); i += 2) {
-            int code = 0;
-            if (!parsePort(words[i], code)) {
+        std::string page = words.back();
+        for (size_t i = 1; i + 1 < words.size(); i++) {
+            int code;
+            if (!parseErrorCode(words[i], code)) {
                 setError("Invalid error page code: " + words[i]);
                 return false;
             }
@@ -239,6 +264,38 @@ bool ConfigParser::parseLocationDirective(const std::string& directive, Location
         location.clientMaxBody = sizeValue;
         return true;
     }
+    if (words[0] == "cgi_pass"){
+        if (words.size() != 2){
+            setError("cgi_pass requires a path");
+            return false;
+        }
+        location.cgiPass = words[1];
+        return true;
+    }
+    if (words[0] == "cgi"){
+        if (words.size() != 3){
+            setError("cgi requires extension and executable");
+            return false;
+        }
+        location.cgiHandlers[words[1]] = words[2];
+        return true;
+    }
+    if (words[0] == "return"){
+        if (words.size() < 2 || words.size() > 3){
+            setError("return requires code [url]");
+            return false;
+        }
+        int code;
+        if (!parseErrorCode(words[1], code)){
+            setError("invalid return code");
+            return false;
+        }
+        location.hasReturn = true;
+        location.returnCode = code;
+        if (words.size() == 3)
+            location.returnUrl = words[2];
+        return true;
+    }
 
     setError("Unknown location directive: " + words[0]);
     return false;
@@ -308,6 +365,10 @@ bool ConfigParser::parseServerBlock(const std::string& block, ServerConfig& serv
             LocationConfig location;
             if (!parseLocationBlock(locationPath, block.substr(bodyStart, bodyEnd - bodyStart), location))
                 return false;
+            if (server.hasLocation(location.path)){
+                setError("Duplicate location path: " + location.path);
+                return false;
+            }
             server.addLocation(location);
             pos = bodyEnd + 1;
             continue;
@@ -385,5 +446,6 @@ bool ConfigParser::parseFile(const std::string& filename, Config& config) {
 
 bool ConfigParser::parseString(const std::string& configContent, Config& config) {
     _lastError.clear();
-    return parseConfigText(configContent, config);
+    std::string clean = skipComments(configContent);
+    return parseConfigText(clean, config);
 }

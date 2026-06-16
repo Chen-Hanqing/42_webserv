@@ -21,6 +21,7 @@ class ConfigParser {
         bool parseLocationDirective(const std::string& directive, LocationConfig& location);
         bool parseSizeValue(const std::string& value, size_t& result);
         bool parsePort(const std::string& value, int& port);
+        bool parseErrorCode(const std::string& value, int& code);
         bool parseIndexList(const std::vector<std::string>& words, std::vector<std::string>& target);
         void setError(const std::string& message);
 

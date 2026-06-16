@@ -185,7 +185,7 @@ void httpResponse::finalize(const ServerConfig& server)
     // 3. CONTENT-LENGTH HEADER
     // =========================
     // IMPORTANT: no member variable, computed directly
-    addHeadersValue("Content-Length", std::to_string(_body.size()));
+    addHeadersValue("Content-Length", intToString(_body.size()));
 }
 
 

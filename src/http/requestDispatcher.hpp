@@ -3,8 +3,8 @@
 
 # include "httpResponse.hpp"
 # include "requestParse.hpp"
-# include "LocationConfig.hpp"
-# include "ServerConfig.hpp"
+# include "../config/LocationConfig.hpp"
+# include "../config/ServerConfig.hpp"
 
 # include <fstream>
 # include <sys/stat.h>

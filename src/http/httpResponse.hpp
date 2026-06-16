@@ -2,7 +2,7 @@
 # define HTTPRESPONSE
 
 # include "requestParse.hpp"
-# include "ServerConfig.hpp"
+# include "../config/ServerConfig.hpp"
 # include <fstream>
 // struct of the response:
 // HTTP/1.1 200 OK

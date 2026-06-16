@@ -49,7 +49,7 @@ void WebServer::handleClientRequest(int clientFd) {
 
     conn->_request_complete = true;
     if (!parseHttpRequest(conn)) {
-        conn->response_buffer = conn->_http_response->buildErrorResponse(400, "Bad Request", *conn->_http_request);
+        //conn->response_buffer = conn->_http_response->buildErrorResponse(400, "Bad Request", *conn->_http_request);
         conn->_response_ready = true;
         return;
     }
@@ -59,10 +59,16 @@ void WebServer::handleClientRequest(int clientFd) {
     if (conn->_runtime_server)
         conn->_matched_location = conn->_runtime_server->locationRouting(conn->_http_request->getPath());
     requestDispatcher dispatcher;
-
-    if (conn->_matched_location)
+    LocationConfig* loc = conn->_matched_location;
+    if (loc)
     {
-        httpResponse res = dispatcher.dispatch(*conn->_http_request, *conn->_matched_location);
+        httpResponse res = dispatcher.dispatch(*conn->_http_request, *conn->_matched_location, conn->_runtime_server->getConfig());
+        if (loc->hasReturn){
+            res.setStatus(loc->returnCode);
+            if (!loc->returnUrl.empty())
+                res.addHeadersValue("Location", loc->returnUrl);
+            return;
+        }
         conn->response_buffer = res.buildResponse();
     }
     conn->_response_ready = true;

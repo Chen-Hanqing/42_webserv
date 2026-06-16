@@ -30,6 +30,14 @@ struct ServerConfig{
         locations.push_back(location);
     }
 
+    bool    hasLocation(const std::string& path) const {
+        for (size_t i = 0; i < locations.size(); i++){
+            if (locations[i].path == path)
+                return true;
+        }
+        return false;
+    }
+
     std::string getErrorPage(int code) const
     {
         std::map<int, std::string>::const_iterator it = errorPages.find(code);
