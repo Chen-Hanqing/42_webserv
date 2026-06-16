@@ -5,6 +5,7 @@
 # include "requestParse.hpp"
 # include "../config/LocationConfig.hpp"
 # include "../config/ServerConfig.hpp"
+# include "../cgi/CGIHandler.hpp"
 
 # include <fstream>
 # include <sys/stat.h>
@@ -38,6 +39,8 @@ class requestDispatcher
         bool isDir(const struct stat& s);
         bool isFile(const struct stat& s);
         std::string buildPath(std::string& pathRequest, LocationConfig& location);
+        httpResponse    executeCGI(const requestParse& req, const std::string& interpreter, const std::string& scriptPath);
+        bool isCGI(const std::string& path, LocationConfig& location, std::string& interpreter);
 };
 
 #endif

@@ -24,6 +24,17 @@ httpResponse requestDispatcher::handlerPost(const requestParse& req, LocationCon
     // 2. build path
     std::string path = buildPath(pathRequest, location);
     
+    std::string ext = getExtension(path);
+    std::map<std::string, std::string>::iterator it = location.cgiHandlers.find(ext);
+    if (it != location.cgiHandlers.end()){
+        struc stat  s;
+        if (!pathExists(path, s))
+            return httpResponse(404);
+        if (!isFile(s))
+            return  httpResponse(403);
+        return buildCGIResponse(req, it->second, path);
+    }
+
     // 3. security check (nginx style safe guard)
     if (path.find("..") != std::string::npos)
         return httpResponse(403);

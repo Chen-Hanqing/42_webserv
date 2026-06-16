@@ -89,6 +89,9 @@ httpResponse requestDispatcher::handlerGet(const requestParse& req, LocationConf
 {
     std::string pathRequest = req.getPath();
     std::string path = buildPath(pathRequest, location);
+    std::string interpreter;
+    if (isCGI(path, location, interpreter))
+        return buildCGIResponse(req, interpreter, path);
     if (path.find("..") != std::string::npos)
         return httpResponse(403);
 

@@ -59,6 +59,17 @@ bool    CGIProcess::parentProcess(pid_t pid, int stdinPipe[2], int stdoutPipe[2]
         output.append(buffer, bytes);
     close(stdoutPipe[0]);
     int status;
-    waitpid(pid, &status, 0);
-    return (WIFEXITED(status) && WEXITSTATUS(status) == 0);
+    time_t  start = time(NULL);
+    while (true){
+        pid_t   ret = waitpid(pid, &status, WNOHANG);
+        if (ret == pid)
+            break;
+        if (time(NULL) - start > 5){
+            kill(pid, SIGKILL);
+            waitpid(pid, &status, 0);
+            return false;
+        }
+        usleep(10000);
+    }
+    return (WIFEXITED(status) && WEXITSTATUS(status) == 0)
 }

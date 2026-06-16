@@ -46,6 +46,32 @@ httpResponse requestDispatcher::finalizeResponse(httpResponse res, const ServerC
     return res;
 }
 
+static std::string  getExtension(const std::string& path){
+    size_t  pos = path.rfind(',');
+    if (pos == std::string::npos)
+        return "";
+    return path.substr(pos);
+}
+
+
+bool isCGI(
+    const std::string& path,
+    LocationConfig& location,
+    std::string& interpreter)
+{
+    std::string ext = getExtension(path);
+
+    std::map<std::string,std::string>::iterator it =
+        location.cgiHandlers.find(ext);
+
+    if (it == location.cgiHandlers.end())
+        return false;
+
+    interpreter = it->second;
+
+    return true;
+}
+
 // ----------- repeat, to be deleted -----------
 // LocationConfig requestDispatcher::findLocation(const std::string& path)
 // {
