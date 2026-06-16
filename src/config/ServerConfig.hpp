@@ -29,6 +29,21 @@ struct ServerConfig{
     void    addLocation(const LocationConfig& location){
         locations.push_back(location);
     }
+
+    std::string getErrorPage(int code) const
+    {
+        std::map<int, std::string>::const_iterator it = errorPages.find(code);
+
+        if (it == errorPages.end())
+            return "";
+
+        std::string path = it->second;
+
+        if (!path.empty() && path[0] != '/')
+            return root + "/" + path;
+
+        return root + path;
+    }
 };
 
 #endif
