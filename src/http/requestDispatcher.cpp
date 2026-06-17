@@ -42,7 +42,7 @@ httpResponse requestDispatcher::finalizeResponse(httpResponse res, const ServerC
     bool keepAlive = (req.getHeader("Connection") != "close");
     res.setKeepAlive(keepAlive);
 
-    res.finalize(server);   // ⭐ error_page 在这里统一处理
+    res.finalize(server);
     return res;
 }
 
@@ -72,11 +72,18 @@ bool requestDispatcher::isCGI(
     return true;
 }
 
-httpResponse    requestDispatcher::buildCGIResponse(const requestParse& req, const std::string& interpreter, const std::string& scriptPath){
+httpResponse    requestDispatcher::buildCGIResponse(const requestParse& req, const std::string& interpreter, const std::string& scriptPath)
+{
     httpResponse    res;
     std::map<std::string, std::string>  headers;
     std::string body;
-    if (!CGIHandler::execute(req, interpreter, scriptPath, headers, body)){
+    // // ------- test ---------
+    // (void) interpreter;
+    // (void) scriptPath;
+    // (void) req;
+    // // ------- test ---------
+    if (!CGIHandler::execute(req, interpreter, scriptPath, headers, body))
+    {
         res.setStatus(500);
         return  res;
     }
@@ -102,35 +109,6 @@ httpResponse    requestDispatcher::buildCGIResponse(const requestParse& req, con
     return res;
 }
 
-// ----------- repeat, to be deleted -----------
-// LocationConfig requestDispatcher::findLocation(const std::string& path)
-// {
-//     LocationConfig best;
-//     size_t best_len = 0;
-
-//     for (size_t i = 0; i < _locations.size(); i++)
-//     {
-//         const std::string& loc_path = _locations[i].path;
-
-//         if (path.compare(0, loc_path.length(), loc_path) == 0 &&
-//             (path.length() == loc_path.length() || path[loc_path.length()] == '/'))
-//         {
-//             if (loc_path.length() > best_len)
-//             {
-//                 best = _locations[i];
-//                 best_len = loc_path.length();
-//             }
-//         }
-//     }
-//     if (best.path.empty())
-//     {
-//         best.path = "/";
-//         best.root = "./www";
-//     }
-//     return best;
-// }
-// ----------- repeat, to be deleted -----------
-
 httpResponse requestDispatcher::dispatch(const requestParse& req, LocationConfig& location, const ServerConfig& server)
 {
     httpResponse res;
@@ -144,13 +122,11 @@ httpResponse requestDispatcher::dispatch(const requestParse& req, LocationConfig
     else
     {
         std::string path = req.getPath();
-        // LocationConfig location = findLocation(path);
         std::string method = req.getMethod();
         if (!isMethodAllowed(method, location))
         {
             res.setStatus(405);
             return finalizeResponse(res, server, req);
-            // res = httpResponse(405);
         }
         else if (method == "GET")
             res = handlerGet(req, location);
@@ -165,6 +141,7 @@ httpResponse requestDispatcher::dispatch(const requestParse& req, LocationConfig
         // std::cout << "raw path: " << path << std::endl;
         // std::cout << "LOCATION: " << location.path << std::endl;
         // std::cout << "ROOT: " << location.root << std::endl;
+        // std::cout << "LOCATION ROOT = " << location.root << std::endl;
         // // ------- test ---------
 
     }
