@@ -27,7 +27,7 @@ httpResponse requestDispatcher::handlerPost(const requestParse& req, LocationCon
     std::string ext = getExtension(path);
     std::map<std::string, std::string>::iterator it = location.cgiHandlers.find(ext);
     if (it != location.cgiHandlers.end()){
-        struc stat  s;
+        struct stat  s;
         if (!pathExists(path, s))
             return httpResponse(404);
         if (!isFile(s))

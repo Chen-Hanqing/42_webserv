@@ -1,9 +1,11 @@
 #ifndef CGIENVIRONMENT_HPP
 # define CGIENVIRONMENT_HPP
 
+#include "../network/web_server.hpp"
+
 class   CGIEnvironment{
 public:
-    char**  buildEnv(const requestParse& req, const std::string& scriptPath);
-    void    freeEnv(char** envp); 
+    static char**  buildEnv(const requestParse& req, const std::string& scriptPath);
+    static void    freeEnv(char** envp); 
 };
 #endif

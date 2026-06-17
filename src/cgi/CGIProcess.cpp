@@ -1,3 +1,5 @@
+#include "CGIProcess.hpp"
+
 bool    CGIProcess::execute(const std::string& interpreter, const std::string& scriptPath,
             char** envp, const std::string& input, std::string& output)
 {
@@ -22,10 +24,11 @@ bool    CGIProcess::execute(const std::string& interpreter, const std::string& s
         close(stdoutPipe[1]);
         return false;
     }
-    if (pid == 0)
+    if (pid == 0){
         childProcess(stdinPipe, stdoutPipe, interpreter, scriptPath, envp);
-    else
-        return parentProcess(pid, stdinPipe, stdoutPipe, input, output);
+        exit(1);
+    }
+    return parentProcess(pid, stdinPipe, stdoutPipe, input, output);
 }
 
 void    CGIProcess::childProcess(int stdinPipe[2], int stdoutPipe[2],
@@ -71,5 +74,5 @@ bool    CGIProcess::parentProcess(pid_t pid, int stdinPipe[2], int stdoutPipe[2]
         }
         usleep(10000);
     }
-    return (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+    return (WIFEXITED(status) && WEXITSTATUS(status) == 0);
 }

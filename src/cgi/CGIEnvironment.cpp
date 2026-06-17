@@ -1,4 +1,6 @@
-char**   buildEnv(const requestParse& req, const std::string& scriptPath){
+#include "CGIEnvironment.hpp"
+
+char**   CGIEnvironment::buildEnv(const requestParse& req, const std::string& scriptPath){
     std::vector<std::string>    vars;
 
     vars.push_back("REQUEST_METHOD=" + req.getMethod());

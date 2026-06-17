@@ -8,6 +8,7 @@ SRC = config/configparser.cpp \
 	http/requestDispatcherGet.cpp http/requestDispatcherPost.cpp http/requestDispatcherDelete.cpp http/requestGetter.cpp \
 	network/client_connec.cpp network/runtime_server.cpp network/web_server.cpp network/webserv_connec.cpp \
 	network/webserv_dispatcher.cpp network/webserv_eventloop.cpp \
+	cgi/CGIEnvironment.cpp cgi/CGIHandler.cpp cgi/CGIResponse.cpp cgi/CGIProcess.cpp \
 	main.cpp
 
 OBJ = $(SRC:.cpp=.o)
