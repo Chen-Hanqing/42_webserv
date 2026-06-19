@@ -18,6 +18,11 @@ httpResponse requestDispatcher::handlerPost(const requestParse& req, LocationCon
     std::string pathRequest = req.getPath();
 
     // 1. body size check
+
+    std::cout
+<< "clientMaxBody = "
+<< location.clientMaxBody
+<< std::endl;
     if (req.getBody().size() > location.clientMaxBody)
         return httpResponse(413);
 

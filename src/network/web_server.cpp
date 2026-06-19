@@ -1,5 +1,5 @@
 #include "web_server.hpp"
-#include "runtime_server.hpp"
+#include "server_block.hpp"
 #include "../config/configparser.hpp"
 
 #include <arpa/inet.h>
@@ -108,10 +108,10 @@ bool WebServer::startListening() {
 
 
 
-bool WebServer::createRuntimeServer() {
+bool WebServer::createServerBlock() {
     for (size_t i = 0; i < _config.getServerCount(); ++i) {
         const ServerConfig& serverBlockConfig = _config.getServer(i);
-        RuntimeServer* server = new RuntimeServer(serverBlockConfig);
+        ServerBlock* server = new ServerBlock(serverBlockConfig);
         _servers.push_back(server);
     }
     return true;
@@ -120,7 +120,7 @@ bool WebServer::createRuntimeServer() {
 // set up the _port2servers mapping
 bool WebServer::setupPortMapping() {
     for (size_t i = 0; i < _servers.size(); ++i) {
-        RuntimeServer* server = _servers[i];
+        ServerBlock* server = _servers[i];
         const std::vector<int>& listenPorts = server->getConfig().listen;
         //set up port to server mapping for all listen ports of the server
         for (size_t j = 0; j < listenPorts.size(); ++j)
@@ -142,7 +142,7 @@ bool WebServer::initializeWebserv(const std::string& configFile) {
         cleanup();
         return false;
     }
-    if (!createRuntimeServer()) {
+    if (!createServerBlock()) {
         cleanup();
         return false;
     }
@@ -201,12 +201,12 @@ void WebServer::cleanup() {
 
 
 
-RuntimeServer* WebServer::hostRouting(const std::string& hostHeader, int port) {
-    std::map<int, std::vector<RuntimeServer*> >::iterator it = _port2servers.find(port);
+ServerBlock* WebServer::hostRouting(const std::string& hostHeader, int port) {
+    std::map<int, std::vector<ServerBlock*> >::iterator it = _port2servers.find(port);
     if (it == _port2servers.end())
         return NULL;
 
-    const std::vector<RuntimeServer*>& serverList = it->second;
+    const std::vector<ServerBlock*>& serverList = it->second;
     for (size_t i = 0; i < serverList.size(); ++i) {
         if (serverList[i]->matchesServerName(hostHeader))
             return serverList[i];

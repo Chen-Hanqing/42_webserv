@@ -1,5 +1,5 @@
 #include "web_server.hpp"
-#include "runtime_server.hpp"
+#include "server_block.hpp"
 #include "../config/configparser.hpp"
 
 #include <arpa/inet.h>
@@ -59,7 +59,7 @@ void WebServer::run() {
             if (_clientConnections.find(clientFd) != _clientConnections.end() && FD_ISSET(clientFd, &_readFds)) 
             // check if this client socket is ready for reading
                 handleClientRequest(clientFd);
-            // key function is recv() and read data into request_buffer, then parseHttpRequest() to check if request is complete, then buildHttpResponse()
+            // key function is recv() and read data until request is complete, then parseHttpRequest() to check if request is complete, then buildHttpResponse()
             if (_clientConnections.find(clientFd) != _clientConnections.end() && FD_ISSET(clientFd, &_writeFds))
             // check if this client socket is ready for writing
                 handleClientResponse(clientFd);

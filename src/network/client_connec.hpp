@@ -8,13 +8,12 @@
 # include "../http/httpResponse.hpp"
 
 struct LocationConfig;
-class RuntimeServer;
+class ServerBlock;
 
 class ClientConnection {
     public:
         int fd;
         int _listen_port;
-        std::string request_buffer;
         std::string response_buffer;
 
         requestParse* _http_request;
@@ -23,7 +22,7 @@ class ClientConnection {
         bool _request_complete;
         bool _response_ready;
 
-        RuntimeServer* _runtime_server;
+        ServerBlock* _server_block;
         LocationConfig* _matched_location;
         size_t _bytes_sent;
         time_t _last_active;

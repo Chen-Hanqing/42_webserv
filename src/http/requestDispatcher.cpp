@@ -2,10 +2,10 @@
 
 std::string requestDispatcher::buildPath(std::string& pathRequest, LocationConfig& location)
 {
-    std::string remaining = pathRequest.substr(location.path.length());
-    std::string path = location.root + '/' + remaining;
+    //std::string remaining = pathRequest.substr(location.path.length());
+    std::string path = location.root + '/' + pathRequest;
     // // ----------- for test ----------- 
-    // std::cout << "FINAL PATH: " << path << std::endl;
+    //std::cout << "FINAL PATH: " << path << std::endl;
     // // ----------- for test ----------- 
     return path;
 }
@@ -47,7 +47,7 @@ httpResponse requestDispatcher::finalizeResponse(httpResponse res, const ServerC
 }
 
 std::string  requestDispatcher::getExtension(const std::string& path){
-    size_t  pos = path.rfind(',');
+    size_t  pos = path.rfind('.');
     if (pos == std::string::npos)
         return "";
     return path.substr(pos);
@@ -60,6 +60,17 @@ bool requestDispatcher::isCGI(
     std::string& interpreter)
 {
     std::string ext = getExtension(path);
+
+    for (std::map<std::string,std::string>::iterator it =
+            location.cgiHandlers.begin();
+            it != location.cgiHandlers.end();
+            ++it)
+    {
+        std::cout
+            << "[" << it->first << "] => "
+            << it->second
+            << std::endl;
+    }
 
     std::map<std::string,std::string>::iterator it =
         location.cgiHandlers.find(ext);
@@ -82,6 +93,7 @@ httpResponse    requestDispatcher::buildCGIResponse(const requestParse& req, con
     // (void) scriptPath;
     // (void) req;
     // // ------- test ---------
+    std::cout << "CGI PATH: " << scriptPath << std::endl;
     if (!CGIHandler::execute(req, interpreter, scriptPath, headers, body))
     {
         res.setStatus(500);
@@ -138,11 +150,16 @@ httpResponse requestDispatcher::dispatch(const requestParse& req, LocationConfig
             res.setStatus(501);
 
         // // ------- test ---------
+        std::cout << "HOST HEADER: " << req.getHost() << std::endl;
+        std::cout << "MATCHED SERVER NAMES: ";
+        for (size_t i = 0; i < server.serverName.size(); ++i)
+            std::cout << server.serverName[i] << " ";
+        std::cout << std::endl;
         // std::cout << "raw path: " << path << std::endl;
         // std::cout << "LOCATION: " << location.path << std::endl;
         // std::cout << "ROOT: " << location.root << std::endl;
         // std::cout << "LOCATION ROOT = " << location.root << std::endl;
-        // // ------- test ---------
+        // // // ------- test ---------
 
     }
     return finalizeResponse(res, server, req);

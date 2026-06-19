@@ -2,10 +2,20 @@
 
 void requestParse::parseBody(const std::string &request)
 {
+    std::cout << "RAW SIZE = "
+              << request.size()
+              << std::endl;
     size_t headEnd = request.find("\r\n\r\n");
+    std::cout << "HEAD END = "
+              << headEnd
+              << std::endl;
     if (headEnd == std::string::npos)
         return ;
     _body = request.substr(headEnd + 4);
+    std::cout
+<< "BODY PARSED SIZE = "
+<< _body.size()
+<< std::endl;
 }
 
 // get headers line by line, seperate by ":"
@@ -25,6 +35,37 @@ bool requestParse::parseHeaders(const std::string &headersStr)
         _headers[key] = value;
     }
     return true;
+}
+
+void requestParse::append(const std::string &data)
+{
+    raw += data;
+    std::cout << "RAW SIZE NOW " << raw.size() << std::endl;
+    if (!_headersParsed)
+    {
+        _headerEnd = raw.find("\r\n\r\n");
+        if (_headerEnd != std::string::npos)
+        {
+            _headersParsed = true;
+
+            std::string header = raw.substr(0, _headerEnd);
+            size_t  firstCRLF = header.find("\r\n");
+            if (firstCRLF != std::string::npos){
+                std::string headerOnly = header.substr(firstCRLF + 2);
+                parseHeaders(headerOnly);
+            }
+            bool    ok = parseHeaders(header);
+            std::cout << "PARSE HEADER RESULT IS " << ok << std::endl;
+            std::cout << "HEADER COUNT " << _headers.size() << std::endl;
+
+            if (hasHeader("content-length"))
+                _contentLength = getContentLength();
+            else
+                _contentLength = 0;
+            std::cout << "CONTENTLENGTH" << _contentLength << std::endl;
+        }
+    }
+
 }
 
 static std::string getHeadersStr(const std::string &request)
@@ -85,18 +126,45 @@ static std::string getRequestLine(const std::string &request)
     return (request.substr(0, pos));
 }
 
-bool requestParse::parseRequest(const std::string &request)
+
+bool requestParse::parseRequest()
 {
-    if (request.empty())
+    if (raw.empty()){
+        std::cout << "EMPTY REQUEST" << std::endl;
         return false;
-    std::string requestLine = getRequestLine(request);
+    }
+    std::cout << "ENTER parseRequest" << std::endl;
+    std::string requestLine = getRequestLine(raw);
+
+    std::cout << "REQUEST LINE = [" << requestLine << "]" << std::endl;
+
     if (requestLine.empty())
+    {
+        std::cout << "REQUEST LINE EMPTY" << std::endl;
         return false;
+    }
+
     if (!parseRequestLine(requestLine))
+    {
+        std::cout << "REQUEST LINE PARSE FAILED" << std::endl;
         return false;
-    std::string headersStr = getHeadersStr(request);
+    }
+
+    std::cout << "REQUEST LINE OK" << std::endl;
+
+    std::string headersStr = getHeadersStr(raw);
+
     if (!parseHeaders(headersStr))
+    {
+        std::cout << "HEADER PARSE FAILED" << std::endl;
         return false;
-    parseBody(request);
+    }
+
+    std::cout << "HEADER OK" << std::endl;
+
+    parseBody(raw);
+
+    std::cout << "BODY OK" << std::endl;
+
     return true;
 }

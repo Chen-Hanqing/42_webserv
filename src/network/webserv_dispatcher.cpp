@@ -1,5 +1,5 @@
 #include "web_server.hpp"
-#include "runtime_server.hpp"
+#include "server_block.hpp"
 #include "../config/configparser.hpp"
 #include "../http/requestDispatcher.hpp"
 
@@ -16,18 +16,21 @@
 bool WebServer::parseHttpRequest(ClientConnection* conn) {
     if (!conn || !conn->_http_request)
         return false;
-    return conn->_http_request->parseRequest(conn->request_buffer);
+    return conn->_http_request->parseRequest();
 }
 
 //key function recv()
 void WebServer::handleClientRequest(int clientFd) {
     std::map<int, ClientConnection*>::iterator it = _clientConnections.find(clientFd);
-    if (it == _clientConnections.end())
+    if (it == _clientConnections.end() || it->second == NULL)
         return;
 
     ClientConnection* conn = it->second;
-    if (!conn)
-        return;
+
+    if (!conn->_http_request)
+        conn->_http_request = new requestParse();
+    if (!conn->_http_response)
+        conn->_http_response = new httpResponse();
 
     char buffer[4096];
     ssize_t bytesRead = recv(clientFd, buffer, sizeof(buffer), 0);
@@ -35,38 +38,35 @@ void WebServer::handleClientRequest(int clientFd) {
         closeClientConnection(clientFd);
         return;
     }
-
-    conn->request_buffer.append(buffer, static_cast<size_t>(bytesRead));
     conn->_last_active = time(NULL);
 
-    if (!conn->_http_request)
-        conn->_http_request = new requestParse();
-    if (!conn->_http_response)
-        conn->_http_response = new httpResponse();
+    conn->_http_request->append(std::string(buffer, bytesRead));
 
-    if (!conn->_http_request->isRequestComplete(conn->request_buffer))
+    if (!conn->_http_request->isRequestComplete())
         return;
-
     conn->_request_complete = true;
     if (!parseHttpRequest(conn)) {
-        //conn->response_buffer = conn->_http_response->buildErrorResponse(400, "Bad Request", *conn->_http_request);
+        httpResponse    res(400);
+        conn->response_buffer = res.buildResponse();
         conn->_response_ready = true;
         return;
     }
 
     std::string host = conn->_http_request->getHost();
-    conn->_runtime_server = hostRouting(host, conn->_listen_port);
-    if (conn->_runtime_server)
-        conn->_matched_location = conn->_runtime_server->locationRouting(conn->_http_request->getPath());
+    conn->_server_block = hostRouting(host, conn->_listen_port);
+    if (conn->_server_block)
+        conn->_matched_location = conn->_server_block->locationRouting(conn->_http_request->getPath());
     requestDispatcher dispatcher;
     LocationConfig* loc = conn->_matched_location;
     if (loc)
     {
-        httpResponse res = dispatcher.dispatch(*conn->_http_request, *conn->_matched_location, conn->_runtime_server->getConfig());
+        httpResponse res = dispatcher.dispatch(*conn->_http_request, *conn->_matched_location, conn->_server_block->getConfig());
         if (loc->hasReturn){
             res.setStatus(loc->returnCode);
             if (!loc->returnUrl.empty())
                 res.addHeadersValue("Location", loc->returnUrl);
+            conn->response_buffer = res.buildResponse();
+            conn->_response_ready = true;
             return;
         }
         conn->response_buffer = res.buildResponse();
@@ -77,7 +77,7 @@ void WebServer::handleClientRequest(int clientFd) {
 //key function send()
 void WebServer::handleClientResponse(int clientFd) {
     std::map<int, ClientConnection*>::iterator it = _clientConnections.find(clientFd);
-    if (it == _clientConnections.end())
+    if (it == _clientConnections.end() || it->second == NULL)
         return;
 
     ClientConnection* conn = it->second;

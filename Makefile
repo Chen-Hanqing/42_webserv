@@ -13,7 +13,7 @@ SRC = src/config/configparser.cpp \
 	src/http/requestDispatcherDelete.cpp \
 	src/http/requestGetter.cpp \
 	src/network/client_connec.cpp \
-	src/network/runtime_server.cpp \
+	src/network/server_block.cpp \
 	src/network/web_server.cpp \
 	src/network/webserv_connec.cpp \
 	src/network/webserv_dispatcher.cpp \

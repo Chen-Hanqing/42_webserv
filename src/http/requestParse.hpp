@@ -26,10 +26,14 @@ class requestParse
         std::string _version;
         std::map<std::string, std::string> _headers;
         std::string _body;
+        std::string raw;
+        size_t _contentLength;
+        size_t _headerEnd;
+        bool _headersParsed;
 
         static std::string toLower(std::string s);
     public:
-        bool parseRequest(const std::string &request);
+        bool parseRequest();
         bool parseRequestLine(const std::string &requestLine);
         void parseQuery(std::string &str);
         bool parseHeaders(const std::string &headers);
@@ -37,7 +41,7 @@ class requestParse
     
         void splitURI(std::string &URI);
         ValidationResult validateRequest() const;
-        bool isRequestComplete(const std::string& buffer);
+        bool isRequestComplete();
         bool hasHeader(const std::string& key) const;
         
         static std::string trim(const std::string &s);
@@ -56,7 +60,9 @@ class requestParse
         const std::map<std::string,std::string>& getQueryParams() const;
         std::string getVersion() const;
         std::string getBody() const;
-        
+        const std::string&  getRaw() const;
+
+        void append(const std::string &data);
 };
 
 #endif

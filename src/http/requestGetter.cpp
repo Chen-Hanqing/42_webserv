@@ -7,26 +7,26 @@ const std::map<std::string, std::string> requestParse::getHeaders() const
 std::string requestParse::getHeader(std::string key) const
 {
     std::map<std::string, std::string>::const_iterator it = _headers.find(toLower(key));
-    if (it != _headers.end())
-        return it->second;
-    return "";
+    if (it == _headers.end())
+        return "";
+    return it->second;
 }
 
 int requestParse::getContentLength() const
 {
-    if (!hasHeader("Content-Length"))
+    if (!hasHeader("content-length"))
         return -1;
-    return std::atoi(getHeader("Content-Length").c_str());
+    return std::atoi(getHeader("content-length").c_str());
 }
 
 std::string requestParse::getContentType() const
 {
-    return getHeader("Content-Type");
+    return getHeader("content-type");
 }
 
 std::string requestParse::getHost() const
 {
-    return getHeader("Host");
+    return getHeader("host");
 }
 
 std::string requestParse::getMethod() const
@@ -60,4 +60,9 @@ std::string requestParse::getVersion() const
 std::string requestParse::getBody() const
 {
     return _body;
+}
+
+const std::string &requestParse::getRaw() const
+{
+    return raw;
 }

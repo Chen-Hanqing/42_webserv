@@ -1,5 +1,5 @@
 #include "web_server.hpp"
-#include "runtime_server.hpp"
+#include "server_block.hpp"
 #include "../config/configparser.hpp"
 
 #include <arpa/inet.h>
@@ -44,8 +44,6 @@ void WebServer::handleNewConnection(int serverFd) {
 void WebServer::resetConnection(ClientConnection* conn) {
     if (!conn)
         return;
-    conn->request_buffer.clear();
-    conn->response_buffer.clear();
     conn->_bytes_sent = 0;
     conn->_request_complete = false;
     conn->_response_ready = false;
@@ -53,7 +51,7 @@ void WebServer::resetConnection(ClientConnection* conn) {
     delete conn->_http_response;
     conn->_http_request = NULL;
     conn->_http_response = NULL;
-    conn->_runtime_server = NULL;
+    conn->_server_block = NULL;
     conn->_matched_location = NULL;
     conn->_last_active = time(NULL);
 }

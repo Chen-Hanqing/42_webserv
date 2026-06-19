@@ -1,16 +1,16 @@
-#include "runtime_server.hpp"
+#include "server_block.hpp"
 
 #include <cstring>
 #include <netinet/in.h>
 #include <unistd.h>
 
-RuntimeServer::RuntimeServer(const ServerConfig& serverBlockConfig) : _config(serverBlockConfig) {}
+ServerBlock::ServerBlock(const ServerConfig& serverBlockConfig) : _config(serverBlockConfig) {}
 
-RuntimeServer::~RuntimeServer() {}
+ServerBlock::~ServerBlock() {}
 
 
 
-LocationConfig* RuntimeServer::locationRouting(const std::string& path) {
+LocationConfig* ServerBlock::locationRouting(const std::string& path) {
     LocationConfig* bestMatch = NULL;
     size_t bestLength = 0;
 
@@ -36,7 +36,7 @@ LocationConfig* RuntimeServer::locationRouting(const std::string& path) {
     return bestMatch;
 }
 
-bool RuntimeServer::matchesServerName(const std::string& hostHeader) const {
+bool ServerBlock::matchesServerName(const std::string& hostHeader) const {
     if (_config.serverName.empty())
         return true;
 

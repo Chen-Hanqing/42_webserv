@@ -13,13 +13,13 @@
 # include <sys/socket.h>
 # include <vector>
 
-class RuntimeServer {
+class ServerBlock {
     private:
         ServerConfig _config;
 
     public:
-        RuntimeServer(const ServerConfig& blockConfig);
-        ~RuntimeServer();
+        ServerBlock(const ServerConfig& blockConfig);
+        ~ServerBlock();
 
         const ServerConfig& getConfig() const { return _config; }
         LocationConfig* locationRouting(const std::string& path);

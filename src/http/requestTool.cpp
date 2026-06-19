@@ -78,24 +78,34 @@ ValidationResult requestParse::validateRequest() const
     return OK;
 }
 
-bool requestParse::isRequestComplete(const std::string& buffer)
+bool requestParse::isRequestComplete()
 {
-    size_t headerEnd = buffer.find("\r\n\r\n");
+    std::cout << "ENTER isRequestComplete NOW " << std::endl;
+    size_t headerEnd = raw.find("\r\n\r\n");
 
     if (headerEnd == std::string::npos)
         return false;
 
-    size_t bodyStart = headerEnd + 4;
+    size_t  bodyStart = headerEnd + 4;
+    if (!_headersParsed){
+        std::string headerPart = raw.substr(0, headerEnd);
+        std::cout << "HEADER PART IS " << headerPart << std::endl;
 
-    if (!hasHeader("Content-Length"))
-        return true;
-
-    size_t bodySize = buffer.size() - bodyStart;
-
-    return bodySize >= (size_t)getContentLength();
+        size_t pos = headerPart.find("Content-Length:");
+        std::cout << "POS " << pos << std::endl;
+        if (pos == std::string::npos)
+            return true;
+        pos += 15;
+        while (pos < headerPart.size() && std::isspace(headerPart[pos]))
+            pos++;
+        size_t end = headerPart.find("\r\n", pos);
+        int contentLength = std::atoi(headerPart.substr(pos, end - pos).c_str());
+        return  (raw.size() - bodyStart)  >= (size_t)contentLength;
+    }
+    return  (raw.size() - bodyStart)  >= (size_t)_contentLength;
 }
 
 bool requestParse::hasHeader(const std::string& key) const
 {
-    return _headers.find(key) != _headers.end();
+    return _headers.find(toLower(key)) != _headers.end();
 }

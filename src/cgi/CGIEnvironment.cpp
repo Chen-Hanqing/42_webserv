@@ -5,8 +5,8 @@ char**   CGIEnvironment::buildEnv(const requestParse& req, const std::string& sc
 
     vars.push_back("REQUEST_METHOD=" + req.getMethod());
     vars.push_back("QUERY_STRING=" + req.getQueryString());
-    vars.push_back("CONTENT_LENGTH=" + req.getHeader("content-length"));
-    vars.push_back("CONTENT_TYPE=" + req.getHeader("content-type"));
+    vars.push_back("CONTENT_LENGTH=" + req.getHeader("Content-Length"));
+    vars.push_back("CONTENT_TYPE=" + req.getHeader("Content-Type"));
 
     vars.push_back("SCRIPT_NAME=" + req.getPath());
     vars.push_back("SCRIPT_FILENAME=" + scriptPath);
