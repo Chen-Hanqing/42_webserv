@@ -27,12 +27,22 @@ class requestParse
         std::map<std::string, std::string> _headers;
         std::string _body;
         std::string raw;
-        size_t _contentLength;
-        size_t _headerEnd;
-        bool _headersParsed;
+        size_t  _contentLength;
+        size_t  _headerEnd;
+        size_t  _bodyStart;
+        bool    _headersParsed;
+        bool    _isChunked;
+        bool    _chunkedComplete;
+        bool    _needsContinueResponse;
+        size_t  _chunkParsePos;
 
         static std::string toLower(std::string s);
+        bool isChunkedBodyComplete();
+
+
     public:
+        requestParse();
+    
         bool parseRequest();
         bool parseRequestLine(const std::string &requestLine);
         void parseQuery(std::string &str);
@@ -50,7 +60,7 @@ class requestParse
 
         const std::map<std::string, std::string> getHeaders() const;
         std::string getHeader(std::string key) const;
-        int getContentLength() const;
+        size_t getContentLength() const;
         std::string getContentType() const;
         std::string getHost() const;
         std::string getMethod() const;
@@ -61,6 +71,7 @@ class requestParse
         std::string getVersion() const;
         std::string getBody() const;
         const std::string&  getRaw() const;
+        bool    needsContinueResponse() const;
 
         void append(const std::string &data);
 };

@@ -12,7 +12,7 @@ std::string requestParse::getHeader(std::string key) const
     return it->second;
 }
 
-int requestParse::getContentLength() const
+size_t requestParse::getContentLength() const
 {
     if (!hasHeader("content-length"))
         return -1;
@@ -65,4 +65,8 @@ std::string requestParse::getBody() const
 const std::string &requestParse::getRaw() const
 {
     return raw;
+}
+
+bool    requestParse::needsContinueResponse() const{
+    return _needsContinueResponse;
 }

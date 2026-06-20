@@ -1,5 +1,6 @@
 #include "network/web_server.hpp"
 #include <iostream>
+#include <csignal>
 
 int main(int argc, char **argv)
 {
@@ -10,7 +11,7 @@ int main(int argc, char **argv)
     }
 
     WebServer server;
-
+    signal(SIGPIPE, SIG_IGN);
     if (!server.initializeWebserv(argv[1]))
     {
         std::cerr << "Configuration error" << std::endl;

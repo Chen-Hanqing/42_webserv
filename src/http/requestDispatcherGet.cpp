@@ -88,6 +88,21 @@ httpResponse buildAutoIndex(const std::string& path,
 httpResponse requestDispatcher::handlerGet(const requestParse& req, LocationConfig& location)
 {
     std::string pathRequest = req.getPath();
+
+    // ---- 特判：请求路径正好是 location 前缀去掉结尾斜杠 ----
+    // 例如 location.path = "/directory/", pathRequest = "/directory"
+    if (!location.path.empty()
+        && location.path[location.path.size() - 1] == '/')
+    {
+        std::string locNoSlash = location.path.substr(0, location.path.size() - 1);
+        if (pathRequest == locNoSlash)
+        {
+            httpResponse res(301);
+            res.addHeadersValue("Location", pathRequest + "/");
+            res.setBody("");
+            return res;
+        }
+    }
     std::string path = buildPath(pathRequest, location);
     std::string interpreter;
     if (isCGI(path, location, interpreter))
@@ -98,6 +113,13 @@ httpResponse requestDispatcher::handlerGet(const requestParse& req, LocationConf
     struct stat s;
     if (!pathExists(path, s))
         return httpResponse(404);
+
+    if (isDir(s) && (pathRequest.empty() || pathRequest[pathRequest.size() - 1] != '/')){
+        httpResponse    res(301);
+        res.addHeadersValue("Location", pathRequest + "/");
+        res.setBody("");
+        return res;
+    }
 
     if (isDir(s))
     {
@@ -117,7 +139,7 @@ httpResponse requestDispatcher::handlerGet(const requestParse& req, LocationConf
         {
             if (location.autoindex)
                 return buildAutoIndex(path, pathRequest);
-            return httpResponse(403);
+            return httpResponse(404);
         }
     }
 

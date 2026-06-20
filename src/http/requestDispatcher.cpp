@@ -1,12 +1,36 @@
 #include "requestDispatcher.hpp"
 
+// std::string requestDispatcher::buildPath(std::string& pathRequest, LocationConfig& location)
+// {
+//     //std::string remaining = pathRequest.substr(location.path.length());
+//     std::string path = location.root + '/' + pathRequest;
+//     // // ----------- for test ----------- 
+//     //std::cout << "FINAL PATH: " << path << std::endl;
+//     // // ----------- for test ----------- 
+//     return path;
+// }
+
 std::string requestDispatcher::buildPath(std::string& pathRequest, LocationConfig& location)
 {
-    //std::string remaining = pathRequest.substr(location.path.length());
-    std::string path = location.root + '/' + pathRequest;
-    // // ----------- for test ----------- 
-    //std::cout << "FINAL PATH: " << path << std::endl;
-    // // ----------- for test ----------- 
+    std::string remaining;
+
+    if (pathRequest.size() >= location.path.size()
+        && pathRequest.compare(0, location.path.size(), location.path) == 0)
+        remaining = pathRequest.substr(location.path.size());
+    else
+        remaining = pathRequest;
+
+    if (!remaining.empty() && remaining[0] == '/')
+        remaining = remaining.substr(1);
+
+    std::string root = location.root;
+    if (!root.empty() && root[root.size() - 1] == '/')
+        root.erase(root.size() - 1);
+
+    std::string path = root;
+    if (!remaining.empty())
+        path += "/" + remaining;
+
     return path;
 }
 
@@ -40,6 +64,9 @@ bool isMethodAllowed(std::string& method, LocationConfig& location)
 httpResponse requestDispatcher::finalizeResponse(httpResponse res, const ServerConfig& server, const requestParse& req)
 {
     bool keepAlive = (req.getHeader("Connection") != "close");
+    int status = res.getStatusCode();
+    if (status == 400 || status == 405 || status == 413 || status >= 500)
+        keepAlive = false;
     res.setKeepAlive(keepAlive);
 
     res.finalize(server);
@@ -96,9 +123,14 @@ httpResponse    requestDispatcher::buildCGIResponse(const requestParse& req, con
     std::cout << "CGI PATH: " << scriptPath << std::endl;
     if (!CGIHandler::execute(req, interpreter, scriptPath, headers, body))
     {
+        // std::cerr << "[DEBUG] CGIHandler::execute returned false (exec failed or non-zero exit or timeout)" << std::endl;
         res.setStatus(500);
         return  res;
     }
+    // std::cerr << "[DEBUG] CGI raw headers parsed:" << std::endl;
+    for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); ++it)
+        std::cerr << "  [" << it->first << "] = [" << it->second << "]" << std::endl;
+    // std::cerr << "[DEBUG] CGI body size = " << body.size() << std::endl;
     res.setStatus(200);
     if (headers.count("Content-Type"))
         res.setContentType(headers["Content-Type"]);
@@ -155,10 +187,10 @@ httpResponse requestDispatcher::dispatch(const requestParse& req, LocationConfig
         for (size_t i = 0; i < server.serverName.size(); ++i)
             std::cout << server.serverName[i] << " ";
         std::cout << std::endl;
-        // std::cout << "raw path: " << path << std::endl;
-        // std::cout << "LOCATION: " << location.path << std::endl;
-        // std::cout << "ROOT: " << location.root << std::endl;
-        // std::cout << "LOCATION ROOT = " << location.root << std::endl;
+        std::cout << "raw path: " << path << std::endl;
+        std::cout << "LOCATION: " << location.path << std::endl;
+        std::cout << "ROOT: " << location.root << std::endl;
+        std::cout << "LOCATION ROOT = " << location.root << std::endl;
         // // // ------- test ---------
 
     }

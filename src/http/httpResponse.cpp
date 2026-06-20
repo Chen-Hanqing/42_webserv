@@ -42,6 +42,7 @@ std::string httpResponse::getStatusMessage(int code) const
     {
         case 200: return "OK";
         case 201: return "Created";
+        case 301: return "Moved Permanently";
         case 400: return "Bad Request";
         case 403: return "Forbidden";
         case 404: return "Not Found";
@@ -56,6 +57,10 @@ std::string httpResponse::getStatusMessage(int code) const
 void httpResponse::setStatus(int code)
 {
     _status_code = code;
+}
+
+int httpResponse::getStatusCode() const{
+    return  _status_code;
 }
 
 std::string httpResponse::buildStatusLine()
@@ -104,19 +109,25 @@ std::string intToString(int n)
 // Delete Content-Length: 0
 void httpResponse::setHeaders()
 {
-	_headers.clear();
-	addHeadersValue("Date", getCurrentTime());
-    addHeadersValue("Server", "webserv");
+    // 不再 clear()，只补全标准字段，且不覆盖已经手动设置的值
+    if (!_headers.count("Date"))
+        addHeadersValue("Date", getCurrentTime());
+    if (!_headers.count("Server"))
+        addHeadersValue("Server", "webserv");
 
-    addHeadersValue("Content-Length",
-        intToString(_body.size()));
+    // Content-Length 必须每次都重新计算，因为 body 可能在这之后变化
+    addHeadersValue("Content-Length", intToString(_body.size()));
 
-    addHeadersValue("Content-Type", _contentType);
+    if (!_headers.count("Content-Type"))
+        addHeadersValue("Content-Type", _contentType);
 
-    if (_keepAlive)
-        addHeadersValue("Connection", "keep-alive");
-    else
-        addHeadersValue("Connection", "close");
+    if (!_headers.count("Connection"))
+    {
+        if (_keepAlive)
+            addHeadersValue("Connection", "keep-alive");
+        else
+            addHeadersValue("Connection", "close");
+    }
 }
 
 std::string httpResponse::buildResponse()

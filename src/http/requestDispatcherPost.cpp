@@ -18,27 +18,19 @@ httpResponse requestDispatcher::handlerPost(const requestParse& req, LocationCon
     std::string pathRequest = req.getPath();
 
     // 1. body size check
-
-    std::cout
-<< "clientMaxBody = "
-<< location.clientMaxBody
-<< std::endl;
     if (req.getBody().size() > location.clientMaxBody)
         return httpResponse(413);
 
     // 2. build path
     std::string path = buildPath(pathRequest, location);
-    
-    std::string ext = getExtension(path);
-    std::map<std::string, std::string>::iterator it = location.cgiHandlers.find(ext);
-    if (it != location.cgiHandlers.end()){
-        struct stat  s;
-        if (!pathExists(path, s))
-            return httpResponse(404);
-        if (!isFile(s))
-            return  httpResponse(403);
-        return buildCGIResponse(req, it->second, path);
-    }
+    std::cerr << "[DEBUG] handlerPost computed path = [" << path << "]" << std::endl;
+
+    std::string interpreter;
+    bool cgiMatched = isCGI(path, location, interpreter);
+    std::cerr << "[DEBUG] isCGI result = " << cgiMatched << ", interpreter = [" << interpreter << "]" << std::endl;
+
+    if (cgiMatched)
+        return buildCGIResponse(req, interpreter, path);
 
     // 3. security check (nginx style safe guard)
     if (path.find("..") != std::string::npos)
@@ -70,6 +62,11 @@ httpResponse requestDispatcher::handlerPost(const requestParse& req, LocationCon
 
     // 7. response 201
     httpResponse res(201);
-    res.addHeadersValue("Location", pathRequest.substr(location.path.length()));
+    std::string locationHeader;
+    if (pathRequest.size() >= location.path.size())
+        locationHeader = pathRequest.substr(location.path.size());
+    else
+        locationHeader = pathRequest; // 防御性兜底，避免越界
+    res.addHeadersValue("Location", locationHeader);
     return res;
 }

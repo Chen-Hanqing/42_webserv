@@ -47,6 +47,7 @@ void WebServer::resetConnection(ClientConnection* conn) {
     conn->_bytes_sent = 0;
     conn->_request_complete = false;
     conn->_response_ready = false;
+    conn->_continueSent = false;
     delete conn->_http_request;
     delete conn->_http_response;
     conn->_http_request = NULL;

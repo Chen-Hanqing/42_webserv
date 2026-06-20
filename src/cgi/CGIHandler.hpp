@@ -11,6 +11,9 @@ public:
                 std::map<std::string, std::string>& headers, std::string& body);
 private:
     static bool    parseCGIOutput(const std::string& raw, std::map<std::string, std::string>& headers, std::string& body);
+    static bool looksLikeChunked(const std::string& body);
+    static  std::string decodeChunkedBody(const std::string& raw);
+
 };
 
 #endif

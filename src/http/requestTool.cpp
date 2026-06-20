@@ -78,31 +78,48 @@ ValidationResult requestParse::validateRequest() const
     return OK;
 }
 
+// bool requestParse::isRequestComplete()
+// {
+//     if (!_headersParsed){
+//         size_t headerEnd = raw.find("\r\n\r\n");
+//         if (headerEnd == std::string::npos)
+//             return false;
+    
+//         std::string headerPart = raw.substr(0, headerEnd);
+//         size_t pos = headerPart.find("Content-Length:");
+//         if (pos == std::string::npos){
+//             _contentLength = 0;
+//             _bodyStart = headerEnd + 4;
+//             _headersParsed = true;
+//             return raw.size() >= _bodyStart;
+//         }
+//         pos += 15;
+//         while (pos < headerPart.size() && std::isspace(headerPart[pos]))
+//             pos++;
+//         size_t end = headerPart.find("\r\n", pos);
+//         _contentLength = std::atoi(headerPart.substr(pos, end - pos).c_str());
+//         _bodyStart = headerEnd + 4;
+//         _headersParsed = true;
+//     }
+//     return  (raw.size() - _bodyStart)  >= (size_t)_contentLength;
+// }
+
+// isRequestComplete 现在只读状态，不做任何解析
 bool requestParse::isRequestComplete()
 {
-    std::cout << "ENTER isRequestComplete NOW " << std::endl;
-    size_t headerEnd = raw.find("\r\n\r\n");
-
-    if (headerEnd == std::string::npos)
+    if (!_headersParsed)
         return false;
 
-    size_t  bodyStart = headerEnd + 4;
-    if (!_headersParsed){
-        std::string headerPart = raw.substr(0, headerEnd);
-        std::cout << "HEADER PART IS " << headerPart << std::endl;
+    if (_isChunked)
+        return isChunkedBodyComplete();
+    if (raw.size() - _bodyStart < _contentLength)
+        return false;
 
-        size_t pos = headerPart.find("Content-Length:");
-        std::cout << "POS " << pos << std::endl;
-        if (pos == std::string::npos)
-            return true;
-        pos += 15;
-        while (pos < headerPart.size() && std::isspace(headerPart[pos]))
-            pos++;
-        size_t end = headerPart.find("\r\n", pos);
-        int contentLength = std::atoi(headerPart.substr(pos, end - pos).c_str());
-        return  (raw.size() - bodyStart)  >= (size_t)contentLength;
-    }
-    return  (raw.size() - bodyStart)  >= (size_t)_contentLength;
+    // 只有真正收完整的那一刻，才执行一次 substr
+    if (_body.empty() && _contentLength > 0)
+        _body = raw.substr(_bodyStart, _contentLength);
+
+    return true;
 }
 
 bool requestParse::hasHeader(const std::string& key) const

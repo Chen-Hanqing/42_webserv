@@ -21,6 +21,9 @@ class ClientConnection {
 
         bool _request_complete;
         bool _response_ready;
+        bool _continueSent;
+        bool _request_start_logged;
+        bool _keepAliveForNextRequest;
 
         ServerBlock* _server_block;
         LocationConfig* _matched_location;

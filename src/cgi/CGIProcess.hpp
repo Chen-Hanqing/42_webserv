@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <fcntl.h>
 
 class   CGIProcess{
 public:
@@ -18,5 +19,7 @@ private:
              const std::string& interpreter, const std::string& scriptPath, char** envp);
         static bool parentProcess(pid_t pid, int stdinPipe[2], int stdoutPipe[2], 
             const std::string& input, std::string& output);
+        static bool writeAllToPipe(int fd, const std::string& input);
+
 };
 #endif
